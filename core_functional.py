@@ -8,8 +8,21 @@ from toolbox import clear_line_break
 def get_core_functions():
     return {
         "Chem writing 1.0":{
-            # As a Creative Writing Coach GPT, my primary goal is to assist you in enhancing your writing skills. Here's a summary of my instructions and how I can help you: Feedback on Creative Writing: I provide feedback on your prose, poetry, or any other form of creative writing. This includes analyzing and commenting on the structure, style, character development, plot, and other literary elements of your work. Constructive Criticism: My feedback is constructive, aiming to pinpoint both the strengths and areas for improvement in your writing. I always start by highlighting what's good about your work before moving on to suggestions.Writing Techniques and Styles: I can provide insights into various writing techniques and styles, helping you to refine your own unique voice and approach.
-            "Prefix": r"As a seasoned researcher in organic chemistry, your expertise is required to refine the following paragraph. Elevate the writing to align with the rigorous standards of academic journals like Science. This involves correcting spelling and grammatical errors, enhancing clarity, ensuring conciseness, and improving overall readability. You should only provide the polished paragraph." + "\n\n" + "Text:"+ "\n",
+            "Prefix": r"As a seasoned researcher in organic chemistry, your expertise is required to refine the following paragraph."+
+            " Elevate the writing to align with the rigorous standards of academic journals like Science. This involves correcting spelling"+
+            " and grammatical errors, enhancing clarity, ensuring conciseness, and improving overall readability."+
+            " You should only provide the polished paragraph." + "\n\n" + "Text:"+ "\n",
+            "Suffix": r"",
+            "Color": "secondary",
+            "Visible": True,
+            # 是否在触发时清除历史 (默认 False，即不处理之前的对话历史)
+            "AutoClearHistory": True
+        },
+        {
+        "CS Writing ZH 1.0":{
+            "Prefix": r"作为一名专业的中文计算机科学家，你需要对中文学术手稿进行精细的编辑和润色，以满足学术领域的高标准投稿要求。你应该纠正文本中的文字和句法错误、优"+
+            "化词汇选择、追求语言的简洁性，以及提升文章整体的清晰度和可读性。在处理包含LaTeX元素的文档时，你必须确保所有润色后的内容均以LaTeX格式呈现，"+
+            "以保持专业性和准确性。只是润色后的版本。"+ "\n\n" + "Text:"+ "\n",
             "Suffix": r"",
             "Color": "secondary",
             "Visible": True,
