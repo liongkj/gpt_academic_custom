@@ -18,17 +18,17 @@ def get_core_functions():
             # 是否在触发时清除历史 (默认 False，即不处理之前的对话历史)
             "AutoClearHistory": True
         },
-        {
-        "CS Writing ZH 1.0":{
+        
+            "CS Writing ZH 1.0": {
             "Prefix": r"作为一名专业的中文计算机科学家，你需要对中文学术手稿进行精细的编辑和润色，以满足学术领域的高标准投稿要求。你应该纠正文本中的文字和句法错误、优"+
-            "化词汇选择、追求语言的简洁性，以及提升文章整体的清晰度和可读性。在处理包含LaTeX元素的文档时，你必须确保所有润色后的内容均以LaTeX格式呈现，"+
+            "化词汇选择、追求语言的简洁性,以及提升文章整体的清晰度和可读性,在处理包含LaTeX元素的文档时,你必须确保所有润色后的内容均以LaTeX格式呈现,"+
             "以保持专业性和准确性。只是润色后的版本。"+ "\n\n" + "Text:"+ "\n",
             "Suffix": r"",
             "Color": "secondary",
             "Visible": True,
             # 是否在触发时清除历史 (默认 False，即不处理之前的对话历史)
             "AutoClearHistory": True
-        },
+            },
         "英语学术润色": {
             # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等
             "Prefix":   r"Below is a paragraph from an academic paper. Polish the writing to meet the academic style, " +
