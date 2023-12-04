@@ -23,9 +23,10 @@ def 生成函数注释(file_manifest, project_folder, llm_kwargs, plugin_kwargs,
                 i_say, i_say_show_user, llm_kwargs, chatbot, history=[], sys_prompt=system_prompt)   # 带超时倒计时
 
             chatbot[-1] = (i_say_show_user, gpt_say)
-            history.append(i_say_show_user); history.append(gpt_say)
+            history.append(i_say_show_user)
+            history.append(gpt_say)
             yield from update_ui(chatbot=chatbot, history=history, msg=msg) # 刷新界面
-            if not fast_debug: time.sleep(2)
+        if not fast_debug: time.sleep(2)
 
     if not fast_debug: 
         res = write_history_to_file(history)
@@ -46,8 +47,9 @@ def 批量生成函数注释(txt, llm_kwargs, plugin_kwargs, chatbot, history, s
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.py', recursive=True)] + \
-                    [f for f in glob.glob(f'{project_folder}/**/*.cpp', recursive=True)]
+    file_manifest = list(
+        glob.glob(f'{project_folder}/**/*.py', recursive=True)
+    ) + list(glob.glob(f'{project_folder}/**/*.cpp', recursive=True))
 
     if len(file_manifest) == 0:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")

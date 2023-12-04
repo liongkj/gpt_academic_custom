@@ -73,7 +73,6 @@ def chat(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, user_i
     chatbot[-1] = [txt, gpt_say]
     history.extend([txt, gpt_say])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-    pass
 
 
 explain_intention_to_user = {
@@ -115,21 +114,21 @@ def 虚空终端(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt
     if is_the_upload_folder(txt):
         state.set_state(chatbot=chatbot, key='has_provided_explaination', value=False)
         appendix_msg = "\n\n**很好，您已经上传了文件**，现在请您描述您的需求。"
-        
+
     if is_certain or (state.has_provided_explaination):
         # 如果意图明确，跳过提示环节
         state.set_state(chatbot=chatbot, key='has_provided_explaination', value=True)
         state.unlock_plugin(chatbot=chatbot)
         yield from update_ui(chatbot=chatbot, history=history)
         yield from 虚空终端主路由(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port)
-        return
     else:
         # 如果意图模糊，提示
         state.set_state(chatbot=chatbot, key='has_provided_explaination', value=True)
         state.lock_plugin(chatbot=chatbot)
         chatbot.append(("虚空终端状态:", explain_msg+appendix_msg))
         yield from update_ui(chatbot=chatbot, history=history)
-        return
+
+    return
 
 
 
@@ -157,9 +156,6 @@ def 虚空终端主路由(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
             yield from update_ui_lastest_msg(
                 lastmsg=f"正在执行任务: {txt}\n\n用户意图理解: 失败 当前语言模型（{llm_kwargs['llm_model']}）不能理解您的意图", chatbot=chatbot, history=history, delay=0)
             return
-    else:
-        pass
-
     yield from update_ui_lastest_msg(
         lastmsg=f"正在执行任务: {txt}\n\n用户意图理解: 意图={explain_intention_to_user[user_intention.intention_type]}", 
         chatbot=chatbot, history=history, delay=0)

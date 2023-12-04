@@ -15,7 +15,7 @@ def write_chat_to_file(chatbot, history=None, file_name=None):
     with open(fp, 'w', encoding='utf8') as f:
         from themes.theme import advanced_css
         f.write(f'<!DOCTYPE html><head><meta charset="utf-8"><title>对话历史</title><style>{advanced_css}</style></head>')
-        for i, contents in enumerate(chatbot):
+        for contents in chatbot:
             for j, content in enumerate(contents):
                 try:    # 这个bug没找到触发条件，暂时先这样顶一下
                     if type(content) != str: content = str(content)
@@ -31,7 +31,7 @@ def write_chat_to_file(chatbot, history=None, file_name=None):
             f.write("\n>>>" + h)
         f.write('</code>')
     promote_file_to_downloadzone(fp, rename_file=file_name, chatbot=chatbot)
-    return '对话历史写入：' + fp
+    return f'对话历史写入：{fp}'
 
 def gen_file_preview(file_name):
     try:
@@ -62,10 +62,12 @@ def read_file_to_chat(chatbot, history, file_name):
     html = html.split('<hr color="red"> \n\n')
     html = list(filter(lambda x:x!="", html))
     chatbot.clear()
-    for i, h in enumerate(html):
+    for h in html:
         i_say, gpt_say = h.split('<hr style="border-top: dotted 3px #ccc;">')
         chatbot.append([i_say, gpt_say])
-    chatbot.append([f"存档文件详情？", f"[Local Message] 载入对话{len(html)}条，上下文{len(history)}条。"])
+    chatbot.append(
+        ["存档文件详情？", f"[Local Message] 载入对话{len(html)}条，上下文{len(history)}条。"]
+    )
     return chatbot, history    
 
 @CatchException
@@ -107,12 +109,15 @@ def 载入对话历史存档(txt, llm_kwargs, plugin_kwargs, chatbot, history, s
     if not success:
         if txt == "": txt = '空空如也的输入栏'
         import glob
-        local_history = "<br/>".join([
-            "`"+hide_cwd(f)+f" ({gen_file_preview(f)})"+"`" 
-            for f in glob.glob(
-                f'{get_log_folder(get_user(chatbot), plugin_name="chat_history")}/**/{f_prefix}*.html', 
-                recursive=True
-            )])
+        local_history = "<br/>".join(
+            [
+                f"`{hide_cwd(f)}" + f" ({gen_file_preview(f)})" + "`"
+                for f in glob.glob(
+                    f'{get_log_folder(get_user(chatbot), plugin_name="chat_history")}/**/{f_prefix}*.html',
+                    recursive=True,
+                )
+            ]
+        )
         chatbot.append([f"正在查找对话历史文件（html格式）: {txt}", f"找不到任何html文件: {txt}。但本地存储了以下历史文件，您可以将任意一个文件路径粘贴到输入区，然后重试：<br/>{local_history}"])
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
@@ -121,7 +126,7 @@ def 载入对话历史存档(txt, llm_kwargs, plugin_kwargs, chatbot, history, s
         chatbot, history = read_file_to_chat(chatbot, history, file_manifest[0])
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
     except:
-        chatbot.append([f"载入对话历史文件", f"对话历史文件损坏！"])
+        chatbot.append(["载入对话历史文件", "对话历史文件损坏！"])
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
 
@@ -138,14 +143,18 @@ def 删除所有本地对话历史记录(txt, llm_kwargs, plugin_kwargs, chatbot
     """
 
     import glob, os
-    local_history = "<br/>".join([
-        "`"+hide_cwd(f)+"`" 
-        for f in glob.glob(
-            f'{get_log_folder(get_user(chatbot), plugin_name="chat_history")}/**/{f_prefix}*.html', recursive=True
-        )])
+    local_history = "<br/>".join(
+        [
+            f"`{hide_cwd(f)}`"
+            for f in glob.glob(
+                f'{get_log_folder(get_user(chatbot), plugin_name="chat_history")}/**/{f_prefix}*.html',
+                recursive=True,
+            )
+        ]
+    )
     for f in glob.glob(f'{get_log_folder(get_user(chatbot), plugin_name="chat_history")}/**/{f_prefix}*.html', recursive=True):
         os.remove(f)
-    chatbot.append([f"删除所有历史对话文件", f"已删除<br/>{local_history}"])
+    chatbot.append(["删除所有历史对话文件", f"已删除<br/>{local_history}"])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
     return
 

@@ -243,7 +243,7 @@ def find_main_tex_file(file_manifest, mode):
         else:
             continue
 
-    if len(canidates) == 0:
+    if not canidates:
         raise RuntimeError('无法找到一个主Tex文件（包含documentclass关键字）')
     elif len(canidates) == 1:
         return canidates[0]
@@ -267,17 +267,11 @@ def find_main_tex_file(file_manifest, mode):
         return canidates[select]
     
 def rm_comments(main_file):
-    new_file_remove_comment_lines = []
-    for l in main_file.splitlines():
-        # 删除整行的空注释
-        if l.lstrip().startswith("%"):
-            pass
-        else:
-            new_file_remove_comment_lines.append(l)
+    new_file_remove_comment_lines = [
+        l for l in main_file.splitlines() if not l.lstrip().startswith("%")
+    ]
     main_file = '\n'.join(new_file_remove_comment_lines)
-    # main_file = re.sub(r"\\include{(.*?)}", r"\\input{\1}", main_file)  # 将 \include 命令转换为 \input 命令
-    main_file = re.sub(r'(?<!\\)%.*', '', main_file)  # 使用正则表达式查找半行注释, 并替换为空字符串
-    return main_file
+    return re.sub(r'(?<!\\)%.*', '', main_file)
 
 def find_tex_file_ignore_case(fp):
     dir_name = os.path.dirname(fp)
@@ -289,7 +283,7 @@ def find_tex_file_ignore_case(fp):
     if os.path.isfile(pj(dir_name, base_name)): return pj(dir_name, base_name)
     # 如果还找不到，解除大小写限制，再试一次
     import glob
-    for f in glob.glob(dir_name+'/*.tex'):
+    for f in glob.glob(f'{dir_name}/*.tex'):
         base_name_s = os.path.basename(fp)
         base_name_f = os.path.basename(f)
         if base_name_s.lower() == base_name_f.lower(): return f
@@ -303,17 +297,15 @@ def merge_tex_files_(project_foler, main_file, mode):
     Merge Tex project recrusively
     """
     main_file = rm_comments(main_file)
-    for s in reversed([q for q in re.finditer(r"\\input\{(.*?)\}", main_file, re.M)]):
+    for s in reversed(list(re.finditer(r"\\input\{(.*?)\}", main_file, re.M))):
         f = s.group(1)
         fp = os.path.join(project_foler, f)
-        fp_ = find_tex_file_ignore_case(fp)
-        if fp_:
-            try:
-                with open(fp_, 'r', encoding='utf-8', errors='replace') as fx: c = fx.read()
-            except:
-                c = f"\n\nWarning from GPT-Academic: LaTex source file is missing!\n\n"
-        else:
+        if not (fp_ := find_tex_file_ignore_case(fp)):
             raise RuntimeError(f'找不到{fp}，Tex源文件缺失！')
+        try:
+            with open(fp_, 'r', encoding='utf-8', errors='replace') as fx: c = fx.read()
+        except:
+            c = f"\n\nWarning from GPT-Academic: LaTex source file is missing!\n\n"
         c = merge_tex_files_(project_foler, c, mode)
         main_file = main_file[:s.span()[0]] + c + main_file[s.span()[1]:]
     return main_file
@@ -324,27 +316,18 @@ def find_title_and_abs(main_file):
     def extract_abstract_1(text):
         pattern = r"\\abstract\{(.*?)\}"
         match = re.search(pattern, text, re.DOTALL)
-        if match:
-            return match.group(1)
-        else:
-            return None
+        return match.group(1) if match else None
 
     def extract_abstract_2(text):
         pattern = r"\\begin\{abstract\}(.*?)\\end\{abstract\}"
         match = re.search(pattern, text, re.DOTALL)
-        if match:
-            return match.group(1)
-        else:
-            return None
+        return match.group(1) if match else None
 
     def extract_title(string):
         pattern = r"\\title\{(.*?)\}"
         match = re.search(pattern, string, re.DOTALL)
 
-        if match:
-            return match.group(1)
-        else:
-            return None
+        return match.group(1) if match else None
 
     abstract = extract_abstract_1(main_file)
     if abstract is None:
@@ -401,17 +384,25 @@ def insert_abstract(tex_content):
         find_index = tex_content.index("\\maketitle")
         # find the nearest ending line
         end_line_index = tex_content.find("\n", find_index)
-        # insert "abs_str" on the next line
-        modified_tex = tex_content[:end_line_index+1] + '\n\n' + insert_missing_abs_str + '\n\n' + tex_content[end_line_index+1:]
-        return modified_tex
+        return (
+            tex_content[: end_line_index + 1]
+            + '\n\n'
+            + insert_missing_abs_str
+            + '\n\n'
+            + tex_content[end_line_index + 1 :]
+        )
     elif r"\begin{document}" in tex_content:
         # find the position of "\maketitle"
         find_index = tex_content.index(r"\begin{document}")
         # find the nearest ending line
         end_line_index = tex_content.find("\n", find_index)
-        # insert "abs_str" on the next line
-        modified_tex = tex_content[:end_line_index+1] + '\n\n' + insert_missing_abs_str + '\n\n' + tex_content[end_line_index+1:]
-        return modified_tex
+        return (
+            tex_content[: end_line_index + 1]
+            + '\n\n'
+            + insert_missing_abs_str
+            + '\n\n'
+            + tex_content[end_line_index + 1 :]
+        )
     else:
         return tex_content
 

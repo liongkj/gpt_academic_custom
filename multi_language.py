@@ -138,10 +138,7 @@ def split_list(lst, n_each_req):
     :param n_each_req: the maximum number of elements in each sub-list
     :return: a list of sub-lists
     """
-    result = []
-    for i in range(0, len(lst), n_each_req):
-        result.append(lst[i:i + n_each_req])
-    return result
+    return [lst[i:i + n_each_req] for i in range(0, len(lst), n_each_req)]
 
 def map_to_json(map, language):
     dict_ = read_map_from_json(language)
@@ -199,7 +196,10 @@ def trans(word_to_translate, language, special=False):
     inputs_show_user_array = inputs_array
     history_array = [[] for _ in inputs_array]
     if special: #  to English using CamelCase Naming Convention
-        sys_prompt_array = [f"Translate following names to English with CamelCase naming convention. Keep original format" for _ in inputs_array]
+        sys_prompt_array = [
+            "Translate following names to English with CamelCase naming convention. Keep original format"
+            for _ in inputs_array
+        ]
     else:
         sys_prompt_array = [f"Translate following sentences to {LANG}. E.g., You should translate sentences to the following format ['translation of sentence 1', 'translation of sentence 2']. Do NOT answer with Chinese!" for _ in inputs_array]
     chatbot = ChatBotWithCookies(llm_kwargs)
@@ -317,7 +317,7 @@ def step_1_core_key_translate():
     def extract_chinese_characters_from_directory(directory_path):
         chinese_characters = []
         for root, dirs, files in os.walk(directory_path):
-            if any([b in root for b in blacklist]):
+            if any(b in root for b in blacklist):
                 continue
             print(files)
             for file in files:
@@ -328,7 +328,7 @@ def step_1_core_key_translate():
 
     directory_path = './'
     chinese_core_names = extract_chinese_characters_from_directory(directory_path)
-    chinese_core_keys = [name for name in chinese_core_names]
+    chinese_core_keys = list(chinese_core_names)
     chinese_core_keys_norepeat = []
     for d in chinese_core_keys:
         if d not in chinese_core_keys_norepeat: chinese_core_keys_norepeat.append(d)
@@ -349,7 +349,7 @@ def step_1_core_key_translate():
 
     chinese_core_keys_norepeat_mapping = {}
     for k in chinese_core_keys_norepeat:
-        chinese_core_keys_norepeat_mapping.update({k:cached_translation[k]})
+        chinese_core_keys_norepeat_mapping[k] = cached_translation[k]
     chinese_core_keys_norepeat_mapping = dict(sorted(chinese_core_keys_norepeat_mapping.items(), key=lambda x: -len(x[0])))
 
     # ===============================================
@@ -362,9 +362,10 @@ def step_1_core_key_translate():
         import os
         try: shutil.rmtree(f'./multi-language/{LANG}/')
         except: pass
-        os.makedirs(f'./multi-language', exist_ok=True)
+        os.makedirs('./multi-language', exist_ok=True)
         backup_dir = f'./multi-language/{LANG}/'
         shutil.copytree('./', backup_dir, ignore=lambda x, y: blacklist)
+
     copy_source_code()
 
     # ===============================================
@@ -379,7 +380,7 @@ def step_1_core_key_translate():
                 # read again
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                
+
                 for k, v in chinese_core_keys_norepeat_mapping.items():
                     content = content.replace(k, v)
 

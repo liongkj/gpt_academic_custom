@@ -51,8 +51,9 @@ class GetQwenLMHandle(LocalLLMHandle):
 
         query, max_length, top_p, temperature, history = adaptor(kwargs)
 
-        for response in self._model.chat(self._tokenizer, query, history=history, stream=True):
-            yield response
+        yield from self._model.chat(
+            self._tokenizer, query, history=history, stream=True
+        )
         
     def try_to_import_special_deps(self, **kwargs):
         # import something that will raise error if the user does not install requirement_*.txt

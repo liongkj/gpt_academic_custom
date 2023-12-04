@@ -7,12 +7,13 @@ import time
 import pickle
 
 def have_any_recent_upload_files(chatbot):
-    _5min = 5 * 60
     if not chatbot: return False    # chatbot is None
-    most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
-    if not most_recent_uploaded: return False   # most_recent_uploaded is None
-    if time.time() - most_recent_uploaded["time"] < _5min: return True # most_recent_uploaded is new
-    else: return False  # most_recent_uploaded is too old
+    if most_recent_uploaded := chatbot._cookies.get(
+        "most_recent_uploaded", None
+    ):
+        return time.time() - most_recent_uploaded["time"] < 5 * 60
+    else:
+        return False   # most_recent_uploaded is None
 
 class GptAcademicState():
     def __init__(self):
@@ -28,12 +29,12 @@ class GptAcademicState():
         setattr(self, key, value)
         chatbot._cookies['plugin_state'] = pickle.dumps(self)
 
-    def get_state(chatbot, cls=None):
-        state = chatbot._cookies.get('plugin_state', None)
+    def get_state(self, cls=None):
+        state = self._cookies.get('plugin_state', None)
         if state is not None:   state = pickle.loads(state)
         elif cls is not None:   state = cls()
         else:                   state = GptAcademicState()
-        state.chatbot = chatbot
+        state.chatbot = self
         return state
 
 class GatherMaterials():

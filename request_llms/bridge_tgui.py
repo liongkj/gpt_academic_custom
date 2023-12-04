@@ -17,7 +17,7 @@ from toolbox import get_conf, update_ui
 
 def random_hash():
     letters = string.ascii_lowercase + string.digits
-    return ''.join(random.choice(letters) for i in range(9))
+    return ''.join(random.choice(letters) for _ in range(9))
 
 async def run(context, max_token, temperature, top_p, addr, port):
     params = {
@@ -99,7 +99,7 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         from core_functional import handle_core_functionality
         inputs, history = handle_core_functionality(additional_fn, inputs, history, chatbot)
 
-    raw_input = "What I would like to say is the following: " + inputs
+    raw_input = f"What I would like to say is the following: {inputs}"
     history.extend([inputs, ""])
     chatbot.append([inputs, ""])
     yield from update_ui(chatbot=chatbot, history=history, msg="等待响应") # 刷新界面
@@ -144,7 +144,7 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
 
 
 def predict_no_ui_long_connection(inputs, llm_kwargs, history, sys_prompt, observe_window, console_slience=False):
-    raw_input = "What I would like to say is the following: " + inputs
+    raw_input = f"What I would like to say is the following: {inputs}"
     prompt = raw_input
     tgui_say = ""
     model_name, addr_port = llm_kwargs['llm_model'].split('@')
@@ -163,6 +163,7 @@ def predict_no_ui_long_connection(inputs, llm_kwargs, history, sys_prompt, obser
                     print('exit when no listener')
                     break
         asyncio.run(get_result(observe_window))
+
     thread_listen = threading.Thread(target=run_coorotine, args=(observe_window,))
     thread_listen.start()
     return observe_window[0]

@@ -17,27 +17,33 @@ def 解析PDF(file_manifest, project_folder, llm_kwargs, plugin_kwargs, chatbot,
         file_content, page_one = read_and_clean_pdf_text(file_name) # （尝试）按照章节切割PDF
         file_content = file_content.encode('utf-8', 'ignore').decode()   # avoid reading non-utf8 chars
         page_one = str(page_one).encode('utf-8', 'ignore').decode()  # avoid reading non-utf8 chars
-        
+
         TOKEN_LIMIT_PER_FRAGMENT = 2500
 
         from .crazy_utils import breakdown_txt_to_satisfy_token_limit_for_pdf
         from request_llms.bridge_all import model_info
         enc = model_info["gpt-3.5-turbo"]['tokenizer']
         def get_token_num(txt): return len(enc.encode(txt, disallowed_special=()))
+
         paper_fragments = breakdown_txt_to_satisfy_token_limit_for_pdf(
             txt=file_content,  get_token_fn=get_token_num, limit=TOKEN_LIMIT_PER_FRAGMENT)
         page_one_fragments = breakdown_txt_to_satisfy_token_limit_for_pdf(
-            txt=str(page_one), get_token_fn=get_token_num, limit=TOKEN_LIMIT_PER_FRAGMENT//4)
+            txt=page_one,
+            get_token_fn=get_token_num,
+            limit=TOKEN_LIMIT_PER_FRAGMENT // 4,
+        )
         # 为了更好的效果，我们剥离Introduction之后的部分（如果有）
         paper_meta = page_one_fragments[0].split('introduction')[0].split('Introduction')[0].split('INTRODUCTION')[0]
-        
+
         ############################## <第 1 步，从摘要中提取高价值信息，放到history中> ##################################
         final_results = []
         final_results.append(paper_meta)
 
         ############################## <第 2 步，迭代地历遍整个文章，提取精炼信息> ##################################
-        i_say_show_user = f'首先你在中文语境下通读整篇论文。'; gpt_say = "[Local Message] 收到。"           # 用户提示
-        chatbot.append([i_say_show_user, gpt_say]); yield from update_ui(chatbot=chatbot, history=[])    # 更新UI
+        i_say_show_user = '首先你在中文语境下通读整篇论文。'
+        gpt_say = "[Local Message] 收到。"           # 用户提示
+        chatbot.append([i_say_show_user, gpt_say])
+        yield from update_ui(chatbot=chatbot, history=[])    # 更新UI
 
         iteration_results = []
         last_iteration_result = paper_meta  # 初始值是摘要
@@ -58,7 +64,7 @@ def 解析PDF(file_manifest, project_folder, llm_kwargs, plugin_kwargs, chatbot,
 
         ############################## <第 3 步，整理history，提取总结> ##################################
         final_results.extend(iteration_results)
-        final_results.append(f'Please conclude this paper discussed above。')
+        final_results.append('Please conclude this paper discussed above。')
         # This prompt is from https://github.com/kaixindelele/ChatPaper/blob/main/chat_paper.py
         NUM_OF_WORD = 1000
         i_say = """
@@ -119,9 +125,12 @@ def 批量总结PDF文档(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
     try:
         import fitz
     except:
-        report_exception(chatbot, history, 
-            a = f"解析项目: {txt}", 
-            b = f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade pymupdf```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade pymupdf```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
 
@@ -138,10 +147,10 @@ def 批量总结PDF文档(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
         return
 
     # 搜索需要处理的文件清单
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.pdf', recursive=True)]
-    
+    file_manifest = list(glob.glob(f'{project_folder}/**/*.pdf', recursive=True))
+
     # 如果没找到任何文件
-    if len(file_manifest) == 0:
+    if not file_manifest:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex或.pdf文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return

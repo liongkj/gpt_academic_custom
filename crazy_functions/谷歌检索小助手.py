@@ -29,9 +29,12 @@ def get_meta_information(url, chatbot, history):
     try:
         session.proxies.update(proxies)
     except:
-        report_exception(chatbot, history,
-                    a=f"获取代理失败 无代理状态下很可能无法访问OpenAI家族的模型及谷歌学术 建议：检查USE_PROXY选项是否修改。",
-                    b=f"尝试直接连接")
+        report_exception(
+            chatbot,
+            history,
+            a="获取代理失败 无代理状态下很可能无法访问OpenAI家族的模型及谷歌学术 建议：检查USE_PROXY选项是否修改。",
+            b="尝试直接连接",
+        )
         yield from update_ui(chatbot=chatbot, history=history)  # 刷新界面
     session.headers.update(headers)
 
@@ -71,10 +74,7 @@ def get_meta_information(url, chatbot, history):
             # 返回给定的url解析出的arxiv_id，如url未成功匹配返回None
             pattern = r'arxiv.org/abs/([^/]+)'
             match = re.search(pattern, url)
-            if match:
-                return match.group(1)
-            else:
-                return None
+            return match.group(1) if match else None
 
     profile = []
     # 获取所有文章的标题和作者
@@ -95,15 +95,17 @@ def get_meta_information(url, chatbot, history):
         )
         try: paper = next(search.results())
         except: paper = None
-        
+
         is_match = paper is not None and string_similar(title, paper.title) > 0.90
 
         # 如果在Arxiv上匹配失败，检索文章的历史版本的题目
         if not is_match and ENABLE_ALL_VERSION_SEARCH:
             other_versions_page_url = [tag['href'] for tag in result.select_one('.gs_flb').select('.gs_nph') if 'cluster' in tag['href']]
-            if len(other_versions_page_url) > 0:
+            if other_versions_page_url:
                 other_versions_page_url = other_versions_page_url[0]
-                paper = search_all_version('http://' + urlparse(url).netloc + other_versions_page_url)
+                paper = search_all_version(
+                    f'http://{urlparse(url).netloc}{other_versions_page_url}'
+                )
                 is_match = paper is not None and string_similar(title, paper.title) > 0.90
 
         if is_match:
@@ -115,9 +117,9 @@ def get_meta_information(url, chatbot, history):
             abstract = abstract
             is_paper_in_arxiv = False
 
-        logging.info('[title]:' + title)
-        logging.info('[author]:' + author)
-        logging.info('[citation]:' + citation)
+        logging.info(f'[title]:{title}')
+        logging.info(f'[author]:{author}')
+        logging.info(f'[citation]:{citation}')
 
         profile.append({
             'title': title,
@@ -127,7 +129,10 @@ def get_meta_information(url, chatbot, history):
             'is_paper_in_arxiv': is_paper_in_arxiv,
         })
 
-        chatbot[-1] = [chatbot[-1][0], title + f'\n\n是否在arxiv中（不在arxiv中无法获取完整摘要）:{is_paper_in_arxiv}\n\n' + abstract]
+        chatbot[-1] = [
+            chatbot[-1][0],
+            f'{title}\n\n是否在arxiv中（不在arxiv中无法获取完整摘要）:{is_paper_in_arxiv}\n\n{abstract}',
+        ]
         yield from update_ui(chatbot=chatbot, history=[]) # 刷新界面
     return profile
 
@@ -146,9 +151,12 @@ def 谷歌检索小助手(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
         import math
         from bs4 import BeautifulSoup
     except:
-        report_exception(chatbot, history, 
-            a = f"解析项目: {txt}", 
-            b = f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade beautifulsoup4 arxiv```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade beautifulsoup4 arxiv```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
 
@@ -181,5 +189,5 @@ def 谷歌检索小助手(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
     yield from update_ui(chatbot=chatbot, history=history, msg=msg) # 刷新界面
     path = write_history_to_file(history)
     promote_file_to_downloadzone(path, chatbot=chatbot)
-    chatbot.append(("完成了吗？", path)); 
+    chatbot.append(("完成了吗？", path));
     yield from update_ui(chatbot=chatbot, history=history, msg=msg) # 刷新界面

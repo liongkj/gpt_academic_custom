@@ -96,7 +96,7 @@ class PluginMultiprocessManager:
                     if last_modified_time != self.previous_work_dir_files[file_path]:
                         self.previous_work_dir_files[file_path] = last_modified_time
                         change_list.append(file_path)
-        if len(change_list) > 0:
+        if change_list:
             file_links = ""
             for f in change_list:
                 res = promote_file_to_downloadzone(f)
@@ -115,13 +115,13 @@ class PluginMultiprocessManager:
             self.parent_conn = self.launch_subprocess_with_pipe() # ⭐⭐⭐
         repeated, cmd_to_autogen = self.send_command(txt)
         if txt == 'exit': 
-            self.chatbot.append([f"结束", "结束信号已明确，终止AutoGen程序。"])
+            self.chatbot.append(["结束", "结束信号已明确，终止AutoGen程序。"])
             yield from update_ui(chatbot=self.chatbot, history=self.history)
             self.terminate()
             return "terminate"
-        
+
         # patience = 10
-        
+
         while True:
             time.sleep(0.5)
             if not self.alive:
@@ -138,7 +138,7 @@ class PluginMultiprocessManager:
                     self.chatbot.pop(-1)    # remove the last line
                 msg = self.parent_conn.recv() # PipeCom
                 if msg.cmd == "done":
-                    self.chatbot.append([f"结束", msg.content])
+                    self.chatbot.append(["结束", msg.content])
                     self.cnt += 1
                     yield from update_ui(chatbot=self.chatbot, history=self.history)
                     self.terminate()
@@ -152,12 +152,16 @@ class PluginMultiprocessManager:
                     yield from update_ui(chatbot=self.chatbot, history=self.history)
                 if msg.cmd == "interact":
                     yield from self.overwatch_workdir_file_change()
-                    self.chatbot.append([f"程序抵达用户反馈节点.", msg.content + 
-                                         "\n\n等待您的进一步指令." + 
-                                         "\n\n(1) 一般情况下您不需要说什么, 清空输入区, 然后直接点击“提交”以继续. " +
-                                         "\n\n(2) 如果您需要补充些什么, 输入要反馈的内容, 直接点击“提交”以继续. " +
-                                         "\n\n(3) 如果您想终止程序, 输入exit, 直接点击“提交”以终止AutoGen并解锁. "
-                    ])
+                    self.chatbot.append(
+                        [
+                            "程序抵达用户反馈节点.",
+                            msg.content
+                            + "\n\n等待您的进一步指令."
+                            + "\n\n(1) 一般情况下您不需要说什么, 清空输入区, 然后直接点击“提交”以继续. "
+                            + "\n\n(2) 如果您需要补充些什么, 输入要反馈的内容, 直接点击“提交”以继续. "
+                            + "\n\n(3) 如果您想终止程序, 输入exit, 直接点击“提交”以终止AutoGen并解锁. ",
+                        ]
+                    )
                     yield from update_ui(chatbot=self.chatbot, history=self.history)
                     # do not terminate here, leave the subprocess_worker instance alive
                     return "wait_feedback"

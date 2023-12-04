@@ -33,7 +33,7 @@ class PaperFileGroup():
                 for j, segment in enumerate(segments):
                     self.sp_file_contents.append(segment)
                     self.sp_file_index.append(index)
-                    self.sp_file_tag.append(self.file_paths[index] + f".part-{j}.md")
+                    self.sp_file_tag.append(f"{self.file_paths[index]}.part-{j}.md")
         logging.info('Segmentation: done')
 
     def merge_result(self):
@@ -56,7 +56,7 @@ def 多文件翻译(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
     #  <-------- 读取Markdown文件，删除其中的所有注释 ----------> 
     pfg = PaperFileGroup()
 
-    for index, fp in enumerate(file_manifest):
+    for fp in file_manifest:
         with open(fp, 'r', encoding='utf-8', errors='replace') as f:
             file_content = f.read()
             # 记录删除注释后的文本
@@ -65,25 +65,23 @@ def 多文件翻译(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
 
     #  <-------- 拆分过长的Markdown文件 ----------> 
     pfg.run_file_split(max_token_limit=1500)
-    n_split = len(pfg.sp_file_contents)
-
-    #  <-------- 多线程翻译开始 ----------> 
+    #  <-------- 多线程翻译开始 ---------->
     if language == 'en->zh':
-        inputs_array = ["This is a Markdown file, translate it into Chinese, do not modify any existing Markdown commands:" + 
-                        f"\n\n{frag}" for frag in pfg.sp_file_contents]
-        inputs_show_user_array = [f"翻译 {f}" for f in pfg.sp_file_tag]
-        sys_prompt_array = ["You are a professional academic paper translator." for _ in range(n_split)]
+        inputs_array = [
+            f"This is a Markdown file, translate it into Chinese, do not modify any existing Markdown commands:\n\n{frag}"
+            for frag in pfg.sp_file_contents
+        ]
     elif language == 'zh->en':
-        inputs_array = [f"This is a Markdown file, translate it into English, do not modify any existing Markdown commands:" + 
-                        f"\n\n{frag}" for frag in pfg.sp_file_contents]
-        inputs_show_user_array = [f"翻译 {f}" for f in pfg.sp_file_tag]
-        sys_prompt_array = ["You are a professional academic paper translator." for _ in range(n_split)]
+        inputs_array = [
+            f"This is a Markdown file, translate it into English, do not modify any existing Markdown commands:\n\n{frag}"
+            for frag in pfg.sp_file_contents
+        ]
     else:
         inputs_array = [f"This is a Markdown file, translate it into {language}, do not modify any existing Markdown commands, only answer me with translated results:" + 
                         f"\n\n{frag}" for frag in pfg.sp_file_contents]
-        inputs_show_user_array = [f"翻译 {f}" for f in pfg.sp_file_tag]
-        sys_prompt_array = ["You are a professional academic paper translator." for _ in range(n_split)]
-
+    n_split = len(pfg.sp_file_contents)
+    sys_prompt_array = ["You are a professional academic paper translator." for _ in range(n_split)]
+    inputs_show_user_array = [f"翻译 {f}" for f in pfg.sp_file_tag]
     gpt_response_collection = yield from request_gpt_model_multi_threads_with_very_awesome_ui_and_high_efficiency(
         inputs_array=inputs_array,
         inputs_show_user_array=inputs_show_user_array,
@@ -96,15 +94,19 @@ def 多文件翻译(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
     )
     try:
         pfg.sp_file_result = []
-        for i_say, gpt_say in zip(gpt_response_collection[0::2], gpt_response_collection[1::2]):
-            pfg.sp_file_result.append(gpt_say)
+        pfg.sp_file_result.extend(
+            gpt_say
+            for i_say, gpt_say in zip(
+                gpt_response_collection[::2], gpt_response_collection[1::2]
+            )
+        )
         pfg.merge_result()
         pfg.write_result(language)
     except:
         logging.error(trimmed_format_exc())
 
-    #  <-------- 整理结果，退出 ----------> 
-    create_report_file_name = gen_time_str() + f"-chatgpt.md"
+    #  <-------- 整理结果，退出 ---------->
+    create_report_file_name = f"{gen_time_str()}-chatgpt.md"
     res = write_history_to_file(gpt_response_collection, file_basename=create_report_file_name)
     promote_file_to_downloadzone(res, chatbot=chatbot)
     history = gpt_response_collection
@@ -143,7 +145,7 @@ def get_files_from_everything(txt, preference=''):
     elif os.path.exists(txt):
         # 本地路径，递归搜索
         project_folder = txt
-        file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.md', recursive=True)]
+        file_manifest = list(glob.glob(f'{project_folder}/**/*.md', recursive=True))
     else:
         project_folder = None
         file_manifest = []
@@ -165,9 +167,12 @@ def Markdown英译中(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -205,9 +210,12 @@ def Markdown中译英(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -238,9 +246,12 @@ def Markdown翻译指定语言(txt, llm_kwargs, plugin_kwargs, chatbot, history,
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -255,7 +266,7 @@ def Markdown翻译指定语言(txt, llm_kwargs, plugin_kwargs, chatbot, history,
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.md文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    
+
     if ("advanced_arg" in plugin_kwargs) and (plugin_kwargs["advanced_arg"] == ""): plugin_kwargs.pop("advanced_arg")
     language = plugin_kwargs.get("advanced_arg", 'Chinese')
     yield from 多文件翻译(file_manifest, project_folder, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, language=language)

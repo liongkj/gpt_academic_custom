@@ -32,14 +32,12 @@ class GetSingletonHandle():
         self.llm_model_already_running = {}
 
     def get_llm_model_instance(self, cls, *args, **kargs):
-        if cls not in self.llm_model_already_running:
+        if (
+            cls not in self.llm_model_already_running
+            or self.llm_model_already_running[cls].corrupted
+        ):
             self.llm_model_already_running[cls] = cls(*args, **kargs)
-            return self.llm_model_already_running[cls]
-        elif self.llm_model_already_running[cls].corrupted:
-            self.llm_model_already_running[cls] = cls(*args, **kargs)
-            return self.llm_model_already_running[cls]
-        else:
-            return self.llm_model_already_running[cls]
+        return self.llm_model_already_running[cls]
 
 def reset_tqdm_output():
     import sys, tqdm
@@ -99,8 +97,6 @@ class LocalLLMHandle(Process):
     def load_model_info(self):
         # 🏃‍♂️🏃‍♂️🏃‍♂️ run in child process
         raise NotImplementedError("Method not implemented yet")
-        self.model_name = ""
-        self.cmd_to_install = ""
 
     def load_model_and_tokenizer(self):
         """

@@ -95,11 +95,11 @@ def handle_core_functionality(additional_fn, inputs, history, chatbot):
     if additional_fn in addition:
         # 自定义功能
         inputs = addition[additional_fn]["Prefix"] + inputs + addition[additional_fn]["Suffix"]
-        return inputs, history
     else:
         # 预制功能
         if "PreProcess" in core_functional[additional_fn]: inputs = core_functional[additional_fn]["PreProcess"](inputs)  # 获取预处理函数（如果有的话）
         inputs = core_functional[additional_fn]["Prefix"] + inputs + core_functional[additional_fn]["Suffix"]
         if core_functional[additional_fn].get("AutoClearHistory", False):
             history = []
-        return inputs, history
+
+    return inputs, history

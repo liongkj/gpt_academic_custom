@@ -1,9 +1,7 @@
 import platform
 from sys import stdout
 
-if platform.system()=="Linux":
-    pass
-else: 
+if platform.system() != "Linux":
     from colorama import init
     init()
 

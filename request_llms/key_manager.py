@@ -21,9 +21,9 @@ class OpenAI_ApiKeyManager():
         self.key_black_list.append(key)
 
     def select_avail_key(self, key_list):
-        # select key from key_list, but avoid keys also in self.key_black_list, raise error if no key can be found
-        available_keys = [key for key in key_list if key not in self.key_black_list]
-        if not available_keys:
+        if available_keys := [
+            key for key in key_list if key not in self.key_black_list
+        ]:
+            return random.choice(available_keys)
+        else:
             raise KeyError("No available key found.")
-        selected_key = random.choice(available_keys)
-        return selected_key

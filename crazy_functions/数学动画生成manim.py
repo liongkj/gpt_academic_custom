@@ -71,9 +71,9 @@ def 动画生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt
     # 尝试导入依赖, 如果缺少依赖, 则给出安装建议
     dep_ok = yield from inspect_dependency(chatbot=chatbot, history=history) # 刷新界面
     if not dep_ok: return
-    
+
     # 输入
-    i_say = f'Generate a animation to show: ' + txt
+    i_say = f'Generate a animation to show: {txt}'
     demo = ["Here is some examples of manim", examples_of_manim()]
     _, demo = input_clipping(inputs="", history=demo, max_token_limit=2560)
     # 开始
@@ -88,7 +88,7 @@ def 动画生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt
     chatbot.append(["开始生成动画", "..."])
     history.extend([i_say, gpt_say])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
-    
+
     # 将代码转为动画
     code = get_code_block(gpt_say)
     res = eval_manim(code)

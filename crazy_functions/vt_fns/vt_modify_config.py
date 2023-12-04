@@ -10,8 +10,10 @@ def modify_configuration_hot(txt, llm_kwargs, plugin_kwargs, chatbot, history, s
     ALLOW_RESET_CONFIG = get_conf('ALLOW_RESET_CONFIG')
     if not ALLOW_RESET_CONFIG:
         yield from update_ui_lastest_msg(
-            lastmsg=f"当前配置不允许被修改！如需激活本功能，请在config.py中设置ALLOW_RESET_CONFIG=True后重启软件。", 
-            chatbot=chatbot, history=history, delay=2
+            lastmsg="当前配置不允许被修改！如需激活本功能，请在config.py中设置ALLOW_RESET_CONFIG=True后重启软件。",
+            chatbot=chatbot,
+            history=history,
+            delay=2,
         )
         return
 
@@ -21,8 +23,8 @@ def modify_configuration_hot(txt, llm_kwargs, plugin_kwargs, chatbot, history, s
     import config
     for k, v in config.__dict__.items():
         if k.startswith('__'): continue
-        names.update({k:k})
-        # if len(names) > 20: break   # 限制最多前10个配置项，如果太多了会导致gpt无法理解
+        names[k] = k
+            # if len(names) > 20: break   # 限制最多前10个配置项，如果太多了会导致gpt无法理解
 
     ConfigOptions = Enum('ConfigOptions', names)
     class ModifyConfigurationIntention(BaseModel):
@@ -35,7 +37,7 @@ def modify_configuration_hot(txt, llm_kwargs, plugin_kwargs, chatbot, history, s
     inputs = "Analyze how to change configuration according to following user input, answer me with json: \n\n" + \
              ">> " + txt.rstrip('\n').replace('\n','\n>> ') + '\n\n' + \
              gpt_json_io.format_instructions
-    
+
     run_gpt_fn = lambda inputs, sys_prompt: predict_no_ui_long_connection(
         inputs=inputs, llm_kwargs=llm_kwargs, history=[], sys_prompt=sys_prompt, observe_window=[])
     user_intention = gpt_json_io.generate_output_auto_repair(run_gpt_fn(inputs, ""), run_gpt_fn)
@@ -69,8 +71,10 @@ def modify_configuration_reboot(txt, llm_kwargs, plugin_kwargs, chatbot, history
     ALLOW_RESET_CONFIG = get_conf('ALLOW_RESET_CONFIG')
     if not ALLOW_RESET_CONFIG:
         yield from update_ui_lastest_msg(
-            lastmsg=f"当前配置不允许被修改！如需激活本功能，请在config.py中设置ALLOW_RESET_CONFIG=True后重启软件。", 
-            chatbot=chatbot, history=history, delay=2
+            lastmsg="当前配置不允许被修改！如需激活本功能，请在config.py中设置ALLOW_RESET_CONFIG=True后重启软件。",
+            chatbot=chatbot,
+            history=history,
+            delay=2,
         )
         return
 

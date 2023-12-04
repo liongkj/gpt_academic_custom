@@ -38,7 +38,7 @@ def backup_and_download(current_version, remote_version):
     import os
     import requests
     import zipfile
-    os.makedirs(f'./history', exist_ok=True)
+    os.makedirs('./history', exist_ok=True)
     backup_dir = f'./history/backup-{current_version}/'
     new_version_dir = f'./history/new-version-{remote_version}/'
     if os.path.exists(new_version_dir):
@@ -48,7 +48,7 @@ def backup_and_download(current_version, remote_version):
     proxies = get_conf('proxies')
     try:    r = requests.get('https://github.com/binary-husky/chatgpt_academic/archive/refs/heads/master.zip', proxies=proxies, stream=True)
     except: r = requests.get('https://public.gpt-academic.top/publish/master.zip', proxies=proxies, stream=True)
-    zip_file_path = backup_dir+'/master.zip'
+    zip_file_path = f'{backup_dir}/master.zip'
     with open(zip_file_path, 'wb+') as f:
         f.write(r.content)
     dst_path = new_version_dir
@@ -77,7 +77,7 @@ def patch_and_restart(path):
         print亮黄('由于您没有设置config_private.py私密配置，现将您的现有配置移动至config_private.py以防止配置丢失，',
               '另外您可以随时在history子文件夹下找回旧版的程序。')
         shutil.copyfile('config.py', 'config_private.py')
-    path_new_version = glob.glob(path + '/*-master')[0]
+    path_new_version = glob.glob(f'{path}/*-master')[0]
     dir_util.copy_tree(path_new_version, './')
     print亮绿('代码已经更新，即将更新pip包依赖……')
     for i in reversed(range(5)): time.sleep(1); print(i)
@@ -123,25 +123,24 @@ def auto_update(raise_error=False):
         with open('./version', 'r', encoding='utf8') as f:
             current_version = f.read()
             current_version = json.loads(current_version)['version']
-        if (remote_version - current_version) >= 0.01-1e-5:
-            from colorful import print亮黄
-            print亮黄(f'\n新版本可用。新版本:{remote_version}，当前版本:{current_version}。{new_feature}')
-            print('（1）Github更新地址:\nhttps://github.com/binary-husky/chatgpt_academic\n')
-            user_instruction = input('（2）是否一键更新代码（Y+回车=确认，输入其他/无输入+回车=不更新）？')
-            if user_instruction in ['Y', 'y']:
-                path = backup_and_download(current_version, remote_version)
-                try:
-                    patch_and_restart(path)
-                except:
-                    msg = '更新失败。'
-                    if raise_error:
-                        from toolbox import trimmed_format_exc
-                        msg += trimmed_format_exc()
-                    print(msg)
-            else:
-                print('自动更新程序：已禁用')
-                return
+        if remote_version - current_version < 0.01 - 1e-5:
+            return
+        from colorful import print亮黄
+        print亮黄(f'\n新版本可用。新版本:{remote_version}，当前版本:{current_version}。{new_feature}')
+        print('（1）Github更新地址:\nhttps://github.com/binary-husky/chatgpt_academic\n')
+        user_instruction = input('（2）是否一键更新代码（Y+回车=确认，输入其他/无输入+回车=不更新）？')
+        if user_instruction in ['Y', 'y']:
+            path = backup_and_download(current_version, remote_version)
+            try:
+                patch_and_restart(path)
+            except:
+                msg = '更新失败。'
+                if raise_error:
+                    from toolbox import trimmed_format_exc
+                    msg += trimmed_format_exc()
+                print(msg)
         else:
+            print('自动更新程序：已禁用')
             return
     except:
         msg = '自动更新程序：已禁用。建议排查：代理网络配置。'

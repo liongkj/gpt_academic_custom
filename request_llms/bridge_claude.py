@@ -114,7 +114,7 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         chatbot.append((inputs, "没有设置ANTHROPIC_API_KEY"))
         yield from update_ui(chatbot=chatbot, history=history, msg="等待响应") # 刷新界面
         return
-    
+
     if additional_fn is not None:
         from core_functional import handle_core_functionality
         inputs, history = handle_core_functionality(additional_fn, inputs, history, chatbot)
@@ -131,7 +131,8 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         yield from update_ui(chatbot=chatbot, history=history, msg="api-key不满足要求") # 刷新界面
         return
 
-    history.append(inputs); history.append("")
+    history.append(inputs)
+    history.append("")
 
     retry = 0
     while True:
@@ -148,17 +149,17 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
                 stream=True,
                 temperature = llm_kwargs['temperature']
             )
-            
+
             break
         except:
             retry += 1
             chatbot[-1] = ((chatbot[-1][0], timeout_bot_msg))
             retry_msg = f"，正在重试 ({retry}/{MAX_RETRY}) ……" if MAX_RETRY > 0 else ""
-            yield from update_ui(chatbot=chatbot, history=history, msg="请求超时"+retry_msg) # 刷新界面
+            yield from update_ui(chatbot=chatbot, history=history, msg=f"请求超时{retry_msg}")
             if retry > MAX_RETRY: raise TimeoutError
 
     gpt_replying_buffer = ""
-    
+
     for completion in stream:
         try:
             gpt_replying_buffer = gpt_replying_buffer + completion.completion
@@ -170,7 +171,7 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
             from toolbox import regular_txt_to_markdown
             tb_str = '```\n' + trimmed_format_exc() + '```'
             chatbot[-1] = (chatbot[-1][0], f"[Local Message] 异常 \n\n{tb_str}")
-            yield from update_ui(chatbot=chatbot, history=history, msg="Json异常" + tb_str) # 刷新界面
+            yield from update_ui(chatbot=chatbot, history=history, msg=f"Json异常{tb_str}")
             return
         
 
@@ -203,26 +204,17 @@ def generate_payload(inputs, llm_kwargs, history, system_prompt, stream):
     messages = [{"role": "system", "content": system_prompt}]
     if conversation_cnt:
         for index in range(0, 2*conversation_cnt, 2):
-            what_i_have_asked = {}
-            what_i_have_asked["role"] = "user"
-            what_i_have_asked["content"] = history[index]
-            what_gpt_answer = {}
-            what_gpt_answer["role"] = "assistant"
-            what_gpt_answer["content"] = history[index+1]
+            what_i_have_asked = {"role": "user", "content": history[index]}
+            what_gpt_answer = {"role": "assistant", "content": history[index+1]}
             if what_i_have_asked["content"] != "":
                 if what_gpt_answer["content"] == "": continue
                 if what_gpt_answer["content"] == timeout_bot_msg: continue
-                messages.append(what_i_have_asked)
-                messages.append(what_gpt_answer)
+                messages.extend((what_i_have_asked, what_gpt_answer))
             else:
                 messages[-1]['content'] = what_gpt_answer['content']
 
-    what_i_ask_now = {}
-    what_i_ask_now["role"] = "user"
-    what_i_ask_now["content"] = inputs
+    what_i_ask_now = {"role": "user", "content": inputs}
     messages.append(what_i_ask_now)
-    prompt = convert_messages_to_prompt(messages)
-
-    return prompt
+    return convert_messages_to_prompt(messages)
 
 

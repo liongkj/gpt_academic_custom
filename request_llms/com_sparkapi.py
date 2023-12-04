@@ -32,9 +32,9 @@ class Ws_Param(object):
         date = format_date_time(mktime(now.timetuple()))
 
         # 拼接字符串
-        signature_origin = "host: " + self.host + "\n"
-        signature_origin += "date: " + date + "\n"
-        signature_origin += "GET " + self.path + " HTTP/1.1"
+        signature_origin = f"host: {self.host}" + "\n"
+        signature_origin += f"date: {date}" + "\n"
+        signature_origin += f"GET {self.path} HTTP/1.1"
 
         # 进行hmac-sha256进行加密
         signature_sha = hmac.new(self.APISecret.encode('utf-8'), signature_origin.encode('utf-8'), digestmod=hashlib.sha256).digest()
@@ -48,17 +48,14 @@ class Ws_Param(object):
             "date": date,
             "host": self.host
         }
-        # 拼接鉴权参数，生成url
-        url = self.gpt_url + '?' + urlencode(v)
-        # 此处打印出建立连接时候的url,参考本demo的时候可取消上方打印的注释，比对相同参数时生成的url与自己代码生成的url是否一致
-        return url
+        return f'{self.gpt_url}?{urlencode(v)}'
 
 
 
 class SparkRequestInstance():
     def __init__(self):
         XFYUN_APPID, XFYUN_API_SECRET, XFYUN_API_KEY = get_conf('XFYUN_APPID', 'XFYUN_API_SECRET', 'XFYUN_API_KEY')
-        if XFYUN_APPID == '00000000' or XFYUN_APPID == '': raise RuntimeError('请配置讯飞星火大模型的XFYUN_APPID, XFYUN_API_KEY, XFYUN_API_SECRET')
+        if XFYUN_APPID in ['00000000', '']: raise RuntimeError('请配置讯飞星火大模型的XFYUN_APPID, XFYUN_API_KEY, XFYUN_API_SECRET')
         self.appid = XFYUN_APPID
         self.api_secret = XFYUN_API_SECRET
         self.api_key = XFYUN_API_KEY
@@ -150,9 +147,7 @@ def generate_message_payload(inputs, llm_kwargs, history, system_prompt, file_ma
     conversation_cnt = len(history) // 2
     messages = []
     if file_manifest:
-        base64_images = []
-        for image_path in file_manifest:
-            base64_images.append(encode_image(image_path))
+        base64_images = [encode_image(image_path) for image_path in file_manifest]
         for img_s in base64_images:
             if img_s not in str(messages):
                 messages.append({"role": "user", "content": img_s, "content_type": "image"})
@@ -160,22 +155,15 @@ def generate_message_payload(inputs, llm_kwargs, history, system_prompt, file_ma
         messages = [{"role": "system", "content": system_prompt}]
     if conversation_cnt:
         for index in range(0, 2*conversation_cnt, 2):
-            what_i_have_asked = {}
-            what_i_have_asked["role"] = "user"
-            what_i_have_asked["content"] = history[index]
-            what_gpt_answer = {}
-            what_gpt_answer["role"] = "assistant"
-            what_gpt_answer["content"] = history[index+1]
+            what_i_have_asked = {"role": "user", "content": history[index]}
+            what_gpt_answer = {"role": "assistant", "content": history[index+1]}
             if what_i_have_asked["content"] != "":
                 if what_gpt_answer["content"] == "": continue
                 if what_gpt_answer["content"] == timeout_bot_msg: continue
-                messages.append(what_i_have_asked)
-                messages.append(what_gpt_answer)
+                messages.extend((what_i_have_asked, what_gpt_answer))
             else:
                 messages[-1]['content'] = what_gpt_answer['content']
-    what_i_ask_now = {}
-    what_i_ask_now["role"] = "user"
-    what_i_ask_now["content"] = inputs
+    what_i_ask_now = {"role": "user", "content": inputs}
     messages.append(what_i_ask_now)
     return messages
 
@@ -189,27 +177,24 @@ def gen_params(appid, inputs, llm_kwargs, history, system_prompt, file_manifest)
         "sparkv2": "generalv2",
         "sparkv3": "generalv3",
     }
-    domains_select = domains[llm_kwargs['llm_model']]
-    if file_manifest: domains_select = 'image'
-    data = {
-        "header": {
-            "app_id": appid,
-            "uid": "1234"
-        },
+    domains_select = 'image' if file_manifest else domains[llm_kwargs['llm_model']]
+    return {
+        "header": {"app_id": appid, "uid": "1234"},
         "parameter": {
             "chat": {
                 "domain": domains_select,
                 "temperature": llm_kwargs["temperature"],
                 "random_threshold": 0.5,
                 "max_tokens": 4096,
-                "auditing": "default"
+                "auditing": "default",
             }
         },
         "payload": {
             "message": {
-                "text": generate_message_payload(inputs, llm_kwargs, history, system_prompt, file_manifest)
+                "text": generate_message_payload(
+                    inputs, llm_kwargs, history, system_prompt, file_manifest
+                )
             }
-        }
+        },
     }
-    return data
 

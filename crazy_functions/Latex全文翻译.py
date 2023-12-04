@@ -31,7 +31,7 @@ class PaperFileGroup():
                 for j, segment in enumerate(segments):
                     self.sp_file_contents.append(segment)
                     self.sp_file_index.append(index)
-                    self.sp_file_tag.append(self.file_paths[index] + f".part-{j}.tex")
+                    self.sp_file_tag.append(f"{self.file_paths[index]}.part-{j}.tex")
 
         print('Segmentation: done')
 
@@ -42,7 +42,7 @@ def 多文件翻译(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
     #  <-------- 读取Latex文件，删除其中的所有注释 ----------> 
     pfg = PaperFileGroup()
 
-    for index, fp in enumerate(file_manifest):
+    for fp in file_manifest:
         with open(fp, 'r', encoding='utf-8', errors='replace') as f:
             file_content = f.read()
             # 定义注释的正则表达式
@@ -93,8 +93,11 @@ def 多文件翻译(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
         scroller_max_len = 80
     )
 
-    #  <-------- 整理结果，退出 ----------> 
-    create_report_file_name = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + f"-chatgpt.polish.md"
+    #  <-------- 整理结果，退出 ---------->
+    create_report_file_name = (
+        time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+        + "-chatgpt.polish.md"
+    )
     res = write_history_to_file(gpt_response_collection, create_report_file_name)
     promote_file_to_downloadzone(res, chatbot=chatbot)
     history = gpt_response_collection
@@ -117,9 +120,12 @@ def Latex英译中(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prom
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -131,8 +137,8 @@ def Latex英译中(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prom
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
-    if len(file_manifest) == 0:
+    file_manifest = list(glob.glob(f'{project_folder}/**/*.tex', recursive=True))
+    if not file_manifest:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
@@ -154,9 +160,12 @@ def Latex中译英(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prom
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -168,8 +177,8 @@ def Latex中译英(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prom
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
-    if len(file_manifest) == 0:
+    file_manifest = list(glob.glob(f'{project_folder}/**/*.tex', recursive=True))
+    if not file_manifest:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return

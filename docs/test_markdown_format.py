@@ -9,10 +9,10 @@ import re
 
 def preprocess_newbing_out(s):
     pattern = r'\^(\d+)\^' # 匹配^数字^
-    pattern2 = r'\[(\d+)\]' # 匹配^数字^
     sub = lambda m: '\['+m.group(1)+'\]' # 将匹配到的数字作为替换值
     result = re.sub(pattern, sub, s) # 替换操作
     if '[1]' in result:
+        pattern2 = r'\[(\d+)\]' # 匹配^数字^
         result += '<br/><hr style="border-top: dotted 1px #44ac5c;"><br/><small>' + "<br/>".join([re.sub(pattern2, sub, r) for r in result.split('\n') if r.startswith('[')]) + '</small>'
     return result
 
@@ -36,11 +36,7 @@ def close_up_code_segment_during_stream(gpt_reply):
     # 排除了以上两个情况，我们
     segments = gpt_reply.split('```')
     n_mark = len(segments) - 1
-    if n_mark % 2 == 1:
-        # print('输出代码片段中！')
-        return gpt_reply+'\n```'
-    else:
-        return gpt_reply
+    return gpt_reply+'\n```' if n_mark % 2 == 1 else gpt_reply
     
 import markdown
 from latex2mathml.converter import convert as tex2mathml

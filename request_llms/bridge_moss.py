@@ -107,9 +107,10 @@ class GetGLMHandle(Process):
         # 第一次运行，加载参数
         def validate_path():
             import os, sys
-            root_dir_assume = os.path.abspath(os.path.dirname(__file__) +  '/..')
-            os.chdir(root_dir_assume + '/request_llms/moss')
-            sys.path.append(root_dir_assume + '/request_llms/moss')
+            root_dir_assume = os.path.abspath(f'{os.path.dirname(__file__)}/..')
+            os.chdir(f'{root_dir_assume}/request_llms/moss')
+            sys.path.append(f'{root_dir_assume}/request_llms/moss')
+
         validate_path() # validate path so you can run from base directory
 
         try:
@@ -131,7 +132,7 @@ class GetGLMHandle(Process):
                 if len(self.local_history) > 0 and len(history)==0:
                     self.prompt = self.meta_instruction
                 self.local_history.append(query)
-                self.prompt += '<|Human|>: ' + query + '<eoh>'
+                self.prompt += f'<|Human|>: {query}<eoh>'
                 inputs = self.tokenizer(self.prompt, return_tensors="pt")
                 with torch.no_grad():
                     outputs = self.model.generate(
@@ -185,11 +186,9 @@ def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="",
             moss_handle = None
             raise RuntimeError(error)
 
-    # chatglm 没有 sys_prompt 接口，因此把prompt加入 history
-    history_feedin = []
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]] )
-
+    history_feedin = [
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    ]
     watch_dog_patience = 5 # 看门狗 (watchdog) 的耐心, 设置5秒即可
     response = ""
     for response in moss_handle.stream_chat(query=inputs, history=history_feedin, sys_prompt=sys_prompt, max_length=llm_kwargs['max_length'], top_p=llm_kwargs['top_p'], temperature=llm_kwargs['temperature']):
@@ -225,11 +224,9 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         from core_functional import handle_core_functionality
         inputs, history = handle_core_functionality(additional_fn, inputs, history, chatbot)
 
-    # 处理历史信息
-    history_feedin = []
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]] )
-
+    history_feedin = [
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    ]
     # 开始接收chatglm的回复
     for response in moss_handle.stream_chat(query=inputs, history=history_feedin, sys_prompt=system_prompt, max_length=llm_kwargs['max_length'], top_p=llm_kwargs['top_p'], temperature=llm_kwargs['temperature']):
         chatbot[-1] = (inputs, response.strip('<|MOSS|>: '))

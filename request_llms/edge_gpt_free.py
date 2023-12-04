@@ -449,13 +449,11 @@ class _ChatHub:
         """
         req_header = HEADERS
         if self.cookies is not None:
-            ws_cookies = []
-            for cookie in self.cookies:
-                ws_cookies.append(f"{cookie['name']}={cookie['value']}")
+            ws_cookies = [f"{cookie['name']}={cookie['value']}" for cookie in self.cookies]
             req_header.update({
                 'Cookie': ';'.join(ws_cookies),
             })
-            
+
         timeout = aiohttp.ClientTimeout(total=30)
         self.session = aiohttp.ClientSession(timeout=timeout)
 
@@ -523,7 +521,7 @@ class _ChatHub:
                 objects = msg.data.split(DELIMITER)
             except :
                 continue
-            
+
             for obj in objects:
                 if obj is None or not obj:
                     continue
@@ -543,7 +541,7 @@ class _ChatHub:
                                     response["arguments"][0]["messages"][0]["text"],
                                 )
                             for i, image in enumerate(images):
-                                resp_txt = resp_txt + f"\n![image{i}]({image})"
+                                resp_txt = f"{resp_txt}\n![image{i}]({image})"
                             draw = True
                         if (
                             response["arguments"][0]["messages"][0]["contentOrigin"]
@@ -1045,13 +1043,12 @@ class Query:
                     print("> Waiting for response...")
                 if self.style.lower() not in "creative balanced precise".split():
                     self.style = "precise"
-                response = await bot.ask(
+                return await bot.ask(
                     prompt=self.prompt,
                     conversation_style=getattr(ConversationStyle, self.style),
                     # wss_link="wss://sydney.bing.com/sydney/ChatHub"
                     # What other values can this parameter take? It seems to be optional
                 )
-                return response
             except KeyError:
                 print(
                     f"> KeyError [{Cookie.current_filepath.name} may have exceeded the daily limit]",
@@ -1114,7 +1111,7 @@ class Query:
 
 class ImageQuery(Query):
     def __init__(self, prompt, **kwargs):
-        kwargs.update({"content_type": "image"})
+        kwargs["content_type"] = "image"
         super().__init__(prompt, **kwargs)
 
     def __repr__(self):

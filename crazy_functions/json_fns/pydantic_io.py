@@ -61,34 +61,36 @@ class GptJsonIO():
             del reduced_schema["title"]
         if "type" in reduced_schema:
             del reduced_schema["type"]
-        # Ensure json in context is well-formed with double quotes.
-        if self.example_instruction:
-            schema_str = json.dumps(reduced_schema)
-            return PYDANTIC_FORMAT_INSTRUCTIONS.format(schema=schema_str)
-        else:
+        if not self.example_instruction:
             return PYDANTIC_FORMAT_INSTRUCTIONS_SIMPLE.format(schema=schema_str)
+        schema_str = json.dumps(reduced_schema)
+        return PYDANTIC_FORMAT_INSTRUCTIONS.format(schema=schema_str)
 
     def generate_output(self, text):
-        # Greedy search for 1st json candidate.
-        match = re.search(
+        if match := re.search(
             r"\{.*\}", text.strip(), re.MULTILINE | re.IGNORECASE | re.DOTALL
-        )
-        json_str = ""
-        if match: json_str = match.group()
+        ):
+            json_str = match.group()
+        else:
+            json_str = ""
         json_object = json.loads(json_str, strict=False)
-        final_object = self.pydantic_object.parse_obj(json_object)
-        return final_object
+        return self.pydantic_object.parse_obj(json_object)
 
     def generate_repair_prompt(self, broken_json, error):
-        prompt = "Fix a broken json string.\n\n" + \
-                 "(1) The broken json string need to fix is: \n\n" + \
-                 "```" + "\n" + \
-                 broken_json + "\n" + \
-                 "```" + "\n\n" + \
-                 "(2) The error message is: \n\n" + \
-                 error + "\n\n" + \
-                "Now, fix this json string. \n\n"
-        return prompt
+        return (
+            "Fix a broken json string.\n\n"
+            + "(1) The broken json string need to fix is: \n\n"
+            + "```"
+            + "\n"
+            + broken_json
+            + "\n"
+            + "```"
+            + "\n\n"
+            + "(2) The error message is: \n\n"
+            + error
+            + "\n\n"
+            + "Now, fix this json string. \n\n"
+        )
     
     def generate_output_auto_repair(self, response, gpt_gen_fn):
         """

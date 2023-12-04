@@ -31,7 +31,7 @@ class PaperFileGroup():
                 for j, segment in enumerate(segments):
                     self.sp_file_contents.append(segment)
                     self.sp_file_index.append(index)
-                    self.sp_file_tag.append(self.file_paths[index] + f".part-{j}.tex")
+                    self.sp_file_tag.append(f"{self.file_paths[index]}.part-{j}.tex")
 
         print('Segmentation: done')
     def merge_result(self):
@@ -42,8 +42,8 @@ class PaperFileGroup():
     def write_result(self):
         manifest = []
         for path, res in zip(self.file_paths, self.file_result):
-            with open(path + '.polish.tex', 'w', encoding='utf8') as f:
-                manifest.append(path + '.polish.tex')
+            with open(f'{path}.polish.tex', 'w', encoding='utf8') as f:
+                manifest.append(f'{path}.polish.tex')
                 f.write(res)
         return manifest
     
@@ -62,7 +62,7 @@ def 多文件润色(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
     #  <-------- 读取Latex文件，删除其中的所有注释 ----------> 
     pfg = PaperFileGroup()
 
-    for index, fp in enumerate(file_manifest):
+    for fp in file_manifest:
         with open(fp, 'r', encoding='utf-8', errors='replace') as f:
             file_content = f.read()
             # 定义注释的正则表达式
@@ -78,26 +78,40 @@ def 多文件润色(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
     n_split = len(pfg.sp_file_contents)
 
 
-    #  <-------- 多线程润色开始 ----------> 
+    #  <-------- 多线程润色开始 ---------->
     if language == 'en':
-        if mode == 'polish':
-            inputs_array = ["Below is a section from an academic paper, polish this section to meet the academic standard, " + 
-                            "improve the grammar, clarity and overall readability, do not modify any latex command such as \section, \cite and equations:" + 
-                            f"\n\n{frag}" for frag in pfg.sp_file_contents]
-        else:
-            inputs_array = [r"Below is a section from an academic paper, proofread this section." + 
-                            r"Do not modify any latex command such as \section, \cite, \begin, \item and equations. " + 
-                            r"Answer me only with the revised text:" + 
-                        f"\n\n{frag}" for frag in pfg.sp_file_contents]
+        inputs_array = (
+            [
+                "Below is a section from an academic paper, polish this section to meet the academic standard, "
+                + "improve the grammar, clarity and overall readability, do not modify any latex command such as \section, \cite and equations:"
+                + f"\n\n{frag}"
+                for frag in pfg.sp_file_contents
+            ]
+            if mode == 'polish'
+            else [
+                r"Below is a section from an academic paper, proofread this section."
+                + r"Do not modify any latex command such as \section, \cite, \begin, \item and equations. "
+                + r"Answer me only with the revised text:"
+                + f"\n\n{frag}"
+                for frag in pfg.sp_file_contents
+            ]
+        )
         inputs_show_user_array = [f"Polish {f}" for f in pfg.sp_file_tag]
         sys_prompt_array = ["You are a professional academic paper writer." for _ in range(n_split)]
     elif language == 'zh':
-        if mode == 'polish':
-            inputs_array = [f"以下是一篇学术论文中的一段内容，请将此部分润色以满足学术标准，提高语法、清晰度和整体可读性，不要修改任何LaTeX命令，例如\section，\cite和方程式：" + 
-                            f"\n\n{frag}" for frag in pfg.sp_file_contents]
-        else:
-            inputs_array = [f"以下是一篇学术论文中的一段内容，请对这部分内容进行语法矫正。不要修改任何LaTeX命令，例如\section，\cite和方程式：" + 
-                            f"\n\n{frag}" for frag in pfg.sp_file_contents] 
+        inputs_array = (
+            [
+                f"以下是一篇学术论文中的一段内容，请将此部分润色以满足学术标准，提高语法、清晰度和整体可读性，不要修改任何LaTeX命令，例如\section，\cite和方程式："
+                + f"\n\n{frag}"
+                for frag in pfg.sp_file_contents
+            ]
+            if mode == 'polish'
+            else [
+                f"以下是一篇学术论文中的一段内容，请对这部分内容进行语法矫正。不要修改任何LaTeX命令，例如\section，\cite和方程式："
+                + f"\n\n{frag}"
+                for frag in pfg.sp_file_contents
+            ]
+        )
         inputs_show_user_array = [f"润色 {f}" for f in pfg.sp_file_tag]
         sys_prompt_array=["你是一位专业的中文学术论文作家。" for _ in range(n_split)]
 
@@ -113,19 +127,26 @@ def 多文件润色(file_manifest, project_folder, llm_kwargs, plugin_kwargs, ch
         scroller_max_len = 80
     )
 
-    #  <-------- 文本碎片重组为完整的tex文件，整理结果为压缩包 ----------> 
+    #  <-------- 文本碎片重组为完整的tex文件，整理结果为压缩包 ---------->
     try:
         pfg.sp_file_result = []
-        for i_say, gpt_say in zip(gpt_response_collection[0::2], gpt_response_collection[1::2]):
-            pfg.sp_file_result.append(gpt_say)
+        pfg.sp_file_result.extend(
+            gpt_say
+            for i_say, gpt_say in zip(
+                gpt_response_collection[::2], gpt_response_collection[1::2]
+            )
+        )
         pfg.merge_result()
         pfg.write_result()
         pfg.zip_result()
     except:
         print(trimmed_format_exc())
 
-    #  <-------- 整理结果，退出 ----------> 
-    create_report_file_name = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + f"-chatgpt.polish.md"
+    #  <-------- 整理结果，退出 ---------->
+    create_report_file_name = (
+        time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+        + "-chatgpt.polish.md"
+    )
     res = write_history_to_file(gpt_response_collection, file_basename=create_report_file_name)
     promote_file_to_downloadzone(res, chatbot=chatbot)
 
@@ -146,9 +167,12 @@ def Latex英文润色(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -160,8 +184,8 @@ def Latex英文润色(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
-    if len(file_manifest) == 0:
+    file_manifest = list(glob.glob(f'{project_folder}/**/*.tex', recursive=True))
+    if not file_manifest:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
@@ -184,9 +208,12 @@ def Latex中文润色(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -198,8 +225,8 @@ def Latex中文润色(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
-    if len(file_manifest) == 0:
+    file_manifest = list(glob.glob(f'{project_folder}/**/*.tex', recursive=True))
+    if not file_manifest:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
@@ -220,9 +247,12 @@ def Latex英文纠错(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
     try:
         import tiktoken
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade tiktoken```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     history = []    # 清空历史，以免输入溢出
@@ -234,8 +264,8 @@ def Latex英文纠错(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)]
-    if len(file_manifest) == 0:
+    file_manifest = list(glob.glob(f'{project_folder}/**/*.tex', recursive=True))
+    if not file_manifest:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return

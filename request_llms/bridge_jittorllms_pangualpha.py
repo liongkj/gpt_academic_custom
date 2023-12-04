@@ -44,9 +44,10 @@ class GetGLMHandle(Process):
             dir_name = os.path.dirname(__file__)
             env = os.environ.get("PATH", "")
             os.environ["PATH"] = env.replace('/cuda/bin', '/x/bin')
-            root_dir_assume = os.path.abspath(os.path.dirname(__file__) +  '/..')
-            os.chdir(root_dir_assume + '/request_llms/jittorllms')
-            sys.path.append(root_dir_assume + '/request_llms/jittorllms')
+            root_dir_assume = os.path.abspath(f'{os.path.dirname(__file__)}/..')
+            os.chdir(f'{root_dir_assume}/request_llms/jittorllms')
+            sys.path.append(f'{root_dir_assume}/request_llms/jittorllms')
+
         validate_path() # validate path so you can run from base directory
 
         def load_model():
@@ -63,6 +64,7 @@ class GetGLMHandle(Process):
             except:
                 self.child.send('[Local Message] Call jittorllms fail 不能正常加载jittorllms的参数。')
                 raise RuntimeError("不能正常加载jittorllms的参数！")
+
         print('load_model')
         load_model()
 
@@ -120,11 +122,9 @@ def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="",
             pangu_glm_handle = None
             raise RuntimeError(error)
 
-    # jittorllms 没有 sys_prompt 接口，因此把prompt加入 history
-    history_feedin = []
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]] )
-
+    history_feedin = [
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    ]
     watch_dog_patience = 5 # 看门狗 (watchdog) 的耐心, 设置5秒即可
     response = ""
     for response in pangu_glm_handle.stream_chat(query=inputs, history=history_feedin, system_prompt=sys_prompt, max_length=llm_kwargs['max_length'], top_p=llm_kwargs['top_p'], temperature=llm_kwargs['temperature']):
@@ -157,11 +157,9 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         from core_functional import handle_core_functionality
         inputs, history = handle_core_functionality(additional_fn, inputs, history, chatbot)
 
-    # 处理历史信息
-    history_feedin = []
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]] )
-
+    history_feedin = [
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    ]
     # 开始接收jittorllms的回复
     response = "[Local Message] 等待jittorllms响应中 ..."
     for response in pangu_glm_handle.stream_chat(query=inputs, history=history_feedin, system_prompt=system_prompt, max_length=llm_kwargs['max_length'], top_p=llm_kwargs['top_p'], temperature=llm_kwargs['temperature']):

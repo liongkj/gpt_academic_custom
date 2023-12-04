@@ -101,9 +101,9 @@ def AnalyAudio(parse_prompt, file_manifest, llm_kwargs, chatbot, history):
             history.extend([i_say_show_user, gpt_say])
             audio_history.extend([i_say_show_user, gpt_say])
 
-        # 已经对该文章的所有片段总结完毕，如果文章被切分了
-        result = "".join(audio_history)
         if len(audio_history) > 1:
+            # 已经对该文章的所有片段总结完毕，如果文章被切分了
+            result = "".join(audio_history)
             i_say = f"根据以上的对话，使用中文总结音频“{result}”的主要内容。"
             i_say_show_user = f'第{index + 1}段音频的主要内容：'
             gpt_say = yield from request_gpt_model_in_new_thread_with_ui_alive(
@@ -144,9 +144,12 @@ def 总结音视频(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_pro
     try:
         from moviepy.editor import AudioFileClip
     except:
-        report_exception(chatbot, history,
-                         a=f"解析项目: {txt}",
-                         b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade moviepy```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade moviepy```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history)  # 刷新界面
         return
 
@@ -173,7 +176,7 @@ def 总结音视频(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_pro
             file_manifest.extend(glob.glob(f'{project_folder}/**/*{extension}', recursive=True))
 
     # 如果没找到任何文件
-    if len(file_manifest) == 0:
+    if not file_manifest:
         report_exception(chatbot, history, a=f"解析项目: {txt}", b=f"找不到任何音频或视频文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history)  # 刷新界面
         return

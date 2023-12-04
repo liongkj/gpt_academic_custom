@@ -20,9 +20,8 @@ def get_avail_grobid_url():
         _grobid_url = random.choice(GROBID_URLS) # 随机负载均衡
         if _grobid_url.endswith('/'): _grobid_url = _grobid_url.rstrip('/')
         with ProxyNetworkActivate('Connect_Grobid'):
-            res = requests.get(_grobid_url+'/api/isalive')
-        if res.text=='true': return _grobid_url
-        else: return None
+            res = requests.get(f'{_grobid_url}/api/isalive')
+        return _grobid_url if res.text=='true' else None
     except:
         return None
 
@@ -43,7 +42,11 @@ def parse_pdf(pdf_path, grobid_url):
 def produce_report_markdown(gpt_response_collection, meta, paper_meta_info, chatbot, fp, generated_conclusion_files):
     # -=-=-=-=-=-=-=-= 写出第1个文件：翻译前后混合 -=-=-=-=-=-=-=-=
     res_path = write_history_to_file(meta +  ["# Meta Translation" , paper_meta_info] + gpt_response_collection, file_basename=f"{gen_time_str()}translated_and_original.md", file_fullname=None)
-    promote_file_to_downloadzone(res_path, rename_file=os.path.basename(res_path)+'.md', chatbot=chatbot)
+    promote_file_to_downloadzone(
+        res_path,
+        rename_file=f'{os.path.basename(res_path)}.md',
+        chatbot=chatbot,
+    )
     generated_conclusion_files.append(res_path)
 
     # -=-=-=-=-=-=-=-= 写出第2个文件：仅翻译后的文本 -=-=-=-=-=-=-=-=
@@ -68,7 +71,11 @@ def produce_report_markdown(gpt_response_collection, meta, paper_meta_info, chat
                                      file_basename = f"{gen_time_str()}-translated_only.md", 
                                      file_fullname = None,
                                      auto_caption = False)
-    promote_file_to_downloadzone(res_path, rename_file=os.path.basename(res_path)+'.md', chatbot=chatbot)
+    promote_file_to_downloadzone(
+        res_path,
+        rename_file=f'{os.path.basename(res_path)}.md',
+        chatbot=chatbot,
+    )
     generated_conclusion_files.append(res_path)
     return res_path
 
@@ -80,11 +87,14 @@ def translate_pdf(article_dict, llm_kwargs, chatbot, fp, generated_conclusion_fi
 
     prompt = "以下是一篇学术论文的基本信息:\n"
     # title
-    title = article_dict.get('title', '无法获取 title'); prompt += f'title:{title}\n\n'
+    title = article_dict.get('title', '无法获取 title')
+    prompt += f'title:{title}\n\n'
     # authors
-    authors = article_dict.get('authors', '无法获取 authors')[:100]; prompt += f'authors:{authors}\n\n'
+    authors = article_dict.get('authors', '无法获取 authors')[:100]
+    prompt += f'authors:{authors}\n\n'
     # abstract
-    abstract = article_dict.get('abstract', '无法获取 abstract'); prompt += f'abstract:{abstract}\n\n'
+    abstract = article_dict.get('abstract', '无法获取 abstract')
+    prompt += f'abstract:{abstract}\n\n'
     # command
     prompt += f"请将题目和摘要翻译为{DST_LANG}。"
     meta = [f'# Title:\n\n', title, f'# Abstract:\n\n', abstract ]
@@ -111,12 +121,11 @@ def translate_pdf(article_dict, llm_kwargs, chatbot, fp, generated_conclusion_fi
         raw_token_num = get_token_num(txt)
         if raw_token_num <= TOKEN_LIMIT_PER_FRAGMENT:
             return [txt]
-        else:
-            # raw_token_num > TOKEN_LIMIT_PER_FRAGMENT
-            # find a smooth token limit to achieve even seperation
-            count = int(math.ceil(raw_token_num / TOKEN_LIMIT_PER_FRAGMENT))
-            token_limit_smooth = raw_token_num // count + count
-            return breakdown_txt_to_satisfy_token_limit_for_pdf(txt, get_token_fn=get_token_num, limit=token_limit_smooth)
+        # raw_token_num > TOKEN_LIMIT_PER_FRAGMENT
+        # find a smooth token limit to achieve even seperation
+        count = int(math.ceil(raw_token_num / TOKEN_LIMIT_PER_FRAGMENT))
+        token_limit_smooth = raw_token_num // count + count
+        return breakdown_txt_to_satisfy_token_limit_for_pdf(txt, get_token_fn=get_token_num, limit=token_limit_smooth)
 
     for section in article_dict.get('sections'):
         if len(section['text']) == 0: continue
@@ -144,7 +153,7 @@ def translate_pdf(article_dict, llm_kwargs, chatbot, fp, generated_conclusion_fi
     produce_report_markdown(gpt_response_collection, meta, paper_meta_info, chatbot, fp, generated_conclusion_files)
 
     # -=-=-=-=-=-=-=-= 写出HTML文件 -=-=-=-=-=-=-=-=
-    ch = construct_html() 
+    ch = construct_html()
     orig = ""
     trans = ""
     gpt_response_collection_html = copy.deepcopy(gpt_response_collection)
