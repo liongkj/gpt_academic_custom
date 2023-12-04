@@ -55,11 +55,11 @@ def readPdf(pdfPath):
         # read the page into a layout object
         interpreter.process_page(page)
         layout = device.get_result()
-        for obj in layout._objs:
-            if isinstance(obj, pdfminer.layout.LTTextBoxHorizontal):
-                # print(obj.get_text())
-                outTextList.append(obj.get_text())
-
+        outTextList.extend(
+            obj.get_text()
+            for obj in layout._objs
+            if isinstance(obj, pdfminer.layout.LTTextBoxHorizontal)
+        )
     return outTextList
 
 
@@ -76,8 +76,8 @@ def 解析Paper(file_manifest, project_folder, llm_kwargs, plugin_kwargs, chatbo
             file_content = BeautifulSoup(''.join(file_content), features="lxml").body.text.encode('gbk', 'ignore').decode('gbk')
 
         prefix = "接下来请你逐文件分析下面的论文文件，概括其内容" if index==0 else ""
-        i_say = prefix + f'请对下面的文章片段用中文做一个概述，文件名是{os.path.relpath(fp, project_folder)}，文章内容是 ```{file_content}```'
-        i_say_show_user = prefix + f'[{index}/{len(file_manifest)}] 请对下面的文章片段做一个概述: {os.path.abspath(fp)}'
+        i_say = f'{prefix}请对下面的文章片段用中文做一个概述，文件名是{os.path.relpath(fp, project_folder)}，文章内容是 ```{file_content}```'
+        i_say_show_user = f'{prefix}[{index}/{len(file_manifest)}] 请对下面的文章片段做一个概述: {os.path.abspath(fp)}'
         chatbot.append((i_say_show_user, "[Local Message] waiting gpt response."))
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
 
@@ -93,11 +93,14 @@ def 解析Paper(file_manifest, project_folder, llm_kwargs, plugin_kwargs, chatbo
                 sys_prompt="总结文章。"
             )  # 带超时倒计时
             chatbot[-1] = (i_say_show_user, gpt_say)
-            history.append(i_say_show_user); history.append(gpt_say)
+            history.append(i_say_show_user)
+            history.append(gpt_say)
             yield from update_ui(chatbot=chatbot, history=history, msg=msg) # 刷新界面
-            if not fast_debug: time.sleep(2)
+        if not fast_debug: time.sleep(2)
 
-    all_file = ', '.join([os.path.relpath(fp, project_folder) for index, fp in enumerate(file_manifest)])
+    all_file = ', '.join(
+        [os.path.relpath(fp, project_folder) for fp in file_manifest]
+    )
     i_say = f'根据以上你自己的分析，对全文进行概括，用学术性语言写一段中文摘要，然后再写一段英文摘要（包括{all_file}）。'
     chatbot.append((i_say, "[Local Message] waiting gpt response."))
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
@@ -138,9 +141,12 @@ def 批量总结PDF文档pdfminer(txt, llm_kwargs, plugin_kwargs, chatbot, histo
     try:
         import pdfminer, bs4
     except:
-        report_exception(chatbot, history, 
-            a = f"解析项目: {txt}", 
-            b = f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade pdfminer beautifulsoup4```。")
+        report_exception(
+            chatbot,
+            history,
+            a=f"解析项目: {txt}",
+            b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade pdfminer beautifulsoup4```。",
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     if os.path.exists(txt):
@@ -150,10 +156,9 @@ def 批量总结PDF文档pdfminer(txt, llm_kwargs, plugin_kwargs, chatbot, histo
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到本地项目或无权访问: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    file_manifest = [f for f in glob.glob(f'{project_folder}/**/*.tex', recursive=True)] + \
-                    [f for f in glob.glob(f'{project_folder}/**/*.pdf', recursive=True)] # + \
-                    # [f for f in glob.glob(f'{project_folder}/**/*.cpp', recursive=True)] + \
-                    # [f for f in glob.glob(f'{project_folder}/**/*.c', recursive=True)]
+    file_manifest = list(
+        glob.glob(f'{project_folder}/**/*.tex', recursive=True)
+    ) + list(glob.glob(f'{project_folder}/**/*.pdf', recursive=True))
     if len(file_manifest) == 0:
         report_exception(chatbot, history, a = f"解析项目: {txt}", b = f"找不到任何.tex或pdf文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面

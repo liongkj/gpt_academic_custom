@@ -50,11 +50,13 @@ try:
             try:
                 # TODO：暂时不支持历史消息，因为在同一个频道里存在多人使用时历史消息渗透问题
                 resp = await self.conversations_history(channel=self.CHANNEL_ID, oldest=self.LAST_TS, limit=1)
-                msg = [msg for msg in resp["messages"]
-                    if msg.get("user") == get_conf('SLACK_CLAUDE_BOT_ID')]
-                return msg
+                return [
+                    msg
+                    for msg in resp["messages"]
+                    if msg.get("user") == get_conf('SLACK_CLAUDE_BOT_ID')
+                ]
             except (SlackApiError, KeyError) as e:
-                raise RuntimeError(f"获取Slack消息失败。")
+                raise RuntimeError("获取Slack消息失败。")
         
         async def get_reply(self):
             while True:
@@ -147,11 +149,7 @@ class ClaudeHandle(Process):
         if (self.claude_model is None) or (not self.success):
             # 代理设置
             proxies = get_conf('proxies')
-            if proxies is None:
-                self.proxies_https = None
-            else:
-                self.proxies_https = proxies['https']
-
+            self.proxies_https = None if proxies is None else proxies['https']
             try:
                 SLACK_CLAUDE_USER_TOKEN = get_conf('SLACK_CLAUDE_USER_TOKEN')
                 self.claude_model = SlackClient(token=SLACK_CLAUDE_USER_TOKEN, proxy=self.proxies_https)
@@ -162,7 +160,7 @@ class ClaudeHandle(Process):
                 self.child.send(f'[Local Message] 不能加载Claude组件。{tb_str}')
                 self.child.send('[Fail]')
                 self.child.send('[Finish]')
-                raise RuntimeError(f"不能加载Claude组件。")
+                raise RuntimeError("不能加载Claude组件。")
 
         self.success = True
         try:
@@ -210,16 +208,14 @@ def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="",
     if (claude_handle is None) or (not claude_handle.success):
         claude_handle = ClaudeHandle()
         observe_window[0] = load_message + "\n\n" + claude_handle.info
-        if not claude_handle.success:
-            error = claude_handle.info
-            claude_handle = None
-            raise RuntimeError(error)
+    if not claude_handle.success:
+        error = claude_handle.info
+        claude_handle = None
+        raise RuntimeError(error)
 
-    # 没有 sys_prompt 接口，因此把prompt加入 history
-    history_feedin = []
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]])
-
+    history_feedin = [
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    ]
     watch_dog_patience = 5  # 看门狗 (watchdog) 的耐心, 设置5秒即可
     response = ""
     observe_window[0] = "[Local Message] 等待Claude响应中 ..."
@@ -243,18 +239,17 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         claude_handle = ClaudeHandle()
         chatbot[-1] = (inputs, load_message + "\n\n" + claude_handle.info)
         yield from update_ui(chatbot=chatbot, history=[])
-        if not claude_handle.success:
-            claude_handle = None
-            return
+    if not claude_handle.success:
+        claude_handle = None
+        return
 
     if additional_fn is not None:
         from core_functional import handle_core_functionality
         inputs, history = handle_core_functionality(additional_fn, inputs, history, chatbot)
 
-    history_feedin = []
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]])
-
+    history_feedin = [
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    ]
     chatbot[-1] = (inputs, "[Local Message] 等待Claude响应中 ...")
     response = "[Local Message] 等待Claude响应中 ..."
     yield from update_ui(chatbot=chatbot, history=history, msg="Claude响应缓慢，尚未完成全部响应，请耐心完成后再提交新问题。")

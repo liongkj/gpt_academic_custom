@@ -33,12 +33,7 @@ class RealtimeAudioDistribution():
             self.data[uuid] = new_arr
 
     def read(self, uuid):
-        if uuid in self.data:
-            res = self.data.pop(uuid)
-            # print('\r read-', len(res), '-', max(res), end='', flush=True)
-        else:
-            res = None
-        return res
+        return self.data.pop(uuid) if uuid in self.data else None
     
 def change_sample_rate(audio, old_sr, new_sr):
     duration = audio.shape[0] / old_sr

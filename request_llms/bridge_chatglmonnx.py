@@ -27,7 +27,14 @@ class GetONNXGLMHandle(LocalLLMHandle):
     def load_model_and_tokenizer(self):
         # 🏃‍♂️🏃‍♂️🏃‍♂️ 子进程执行
         import os, glob
-        if not len(glob.glob("./request_llms/ChatGLM-6b-onnx-u8s8/chatglm-6b-int8-onnx-merged/*.bin")) >= 7: # 该模型有七个 bin 文件
+        if (
+            len(
+                glob.glob(
+                    "./request_llms/ChatGLM-6b-onnx-u8s8/chatglm-6b-int8-onnx-merged/*.bin"
+                )
+            )
+            < 7
+        ): # 该模型有七个 bin 文件
             from huggingface_hub import snapshot_download
             snapshot_download(repo_id="K024/ChatGLM-6b-onnx-u8s8", local_dir="./request_llms/ChatGLM-6b-onnx-u8s8")
         def create_model():
@@ -35,6 +42,7 @@ class GetONNXGLMHandle(LocalLLMHandle):
                 tokenizer_path = "./request_llms/ChatGLM-6b-onnx-u8s8/chatglm-6b-int8-onnx-merged/sentencepiece.model",
                 onnx_model_path = "./request_llms/ChatGLM-6b-onnx-u8s8/chatglm-6b-int8-onnx-merged/chatglm-6b-int8.onnx"
             )
+
         self._model = create_model()
         return self._model, None
 
@@ -51,14 +59,13 @@ class GetONNXGLMHandle(LocalLLMHandle):
         query, max_length, top_p, temperature, history = adaptor(kwargs)
 
         prompt = chat_template(history, query)
-        for answer in self._model.generate_iterate(
+        yield from self._model.generate_iterate(
             prompt,
             max_generated_tokens=max_length,
             top_k=1,
             top_p=top_p,
             temperature=temperature,
-        ):
-            yield answer
+        )
         
     def try_to_import_special_deps(self, **kwargs):
         # import something that will raise error if the user does not install requirement_*.txt

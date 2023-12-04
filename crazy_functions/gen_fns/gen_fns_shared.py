@@ -7,9 +7,7 @@ import multiprocessing
 
 def get_class_name(class_string):
     import re
-    # Use regex to extract the class name
-    class_name = re.search(r'class (\w+)\(', class_string).group(1)
-    return class_name
+    return re.search(r'class (\w+)\(', class_string).group(1)
 
 def try_make_module(code, chatbot):
     module_file = 'gpt_fn_' + gen_time_str().replace('-','_')

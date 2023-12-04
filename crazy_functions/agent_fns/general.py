@@ -16,9 +16,7 @@ def gpt_academic_generate_oai_reply(
         messages = self._oai_messages[sender]
 
     inputs = messages[-1]['content']
-    history = []
-    for message in messages[:-1]:
-        history.append(message['content'])
+    history = [message['content'] for message in messages[:-1]]
     context=messages[-1].pop("context", None)
     assert context is None, "预留参数 context 未实现"
 

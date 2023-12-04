@@ -35,8 +35,7 @@ class PaperFileGroup():
                 for j, segment in enumerate(segments):
                     self.sp_file_contents.append(segment)
                     self.sp_file_index.append(index)
-                    self.sp_file_tag.append(
-                        self.file_paths[index] + f".part-{j}.txt")
+                    self.sp_file_tag.append(f"{self.file_paths[index]}.part-{j}.txt")
 
 
 
@@ -138,9 +137,10 @@ def 解析ipynb文件(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_p
     if txt.endswith('.ipynb'):
         file_manifest = [txt]
     else:
-        file_manifest = [f for f in glob.glob(
-            f'{project_folder}/**/*.ipynb', recursive=True)]
-    if len(file_manifest) == 0:
+        file_manifest = list(
+            glob.glob(f'{project_folder}/**/*.ipynb', recursive=True)
+        )
+    if not file_manifest:
         report_exception(chatbot, history,
                          a=f"解析项目: {txt}", b=f"找不到任何.ipynb文件: {txt}")
         yield from update_ui(chatbot=chatbot, history=history)  # 刷新界面

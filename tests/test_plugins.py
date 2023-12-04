@@ -4,7 +4,11 @@
 
 
 import os, sys
-def validate_path(): dir_name = os.path.dirname(__file__); root_dir_assume = os.path.abspath(dir_name +  '/..'); os.chdir(root_dir_assume); sys.path.append(root_dir_assume)
+def validate_path():
+    dir_name = os.path.dirname(__file__)
+    root_dir_assume = os.path.abspath(f'{dir_name}/..')
+    os.chdir(root_dir_assume)
+    sys.path.append(root_dir_assume)
 validate_path() # 返回项目根路径
 
 if __name__ == "__main__":

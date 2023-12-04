@@ -270,7 +270,7 @@ def get_crazy_functions():
         #     "Info": "对Latex项目全文进行英译中处理 | 输入参数为路径或上传压缩包",
         #     "Function": HotReload(Latex英译中)
         # },
-        
+
         "批量Markdown中译英（输入路径或上传压缩包）": {
             "Group": "编程",
             "Color": "stop",
@@ -283,309 +283,264 @@ def get_crazy_functions():
     # -=--=- 尚未充分测试的实验性插件 & 需要额外依赖的插件 -=--=-
     try:
         from crazy_functions.下载arxiv论文翻译摘要 import 下载arxiv论文并翻译摘要
-        function_plugins.update({
-            "一键下载arxiv论文并翻译摘要（先在input输入编号，如1812.10695）": {
-                "Group": "学术",
-                "Color": "stop",
-                "AsButton": False,  # 加入下拉菜单中
-                # "Info": "下载arxiv论文并翻译摘要 | 输入参数为arxiv编号如1812.10695",
-                "Function": HotReload(下载arxiv论文并翻译摘要)
-            }
-        })
+        function_plugins["一键下载arxiv论文并翻译摘要（先在input输入编号，如1812.10695）"] = {
+            "Group": "学术",
+            "Color": "stop",
+            "AsButton": False,  # 加入下拉菜单中
+            # "Info": "下载arxiv论文并翻译摘要 | 输入参数为arxiv编号如1812.10695",
+            "Function": HotReload(下载arxiv论文并翻译摘要),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.联网的ChatGPT import 连接网络回答问题
-        function_plugins.update({
-            "连接网络回答问题（输入问题后点击该插件，需要访问谷歌）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,  # 加入下拉菜单中
-                # "Info": "连接网络回答问题（需要访问谷歌）| 输入参数是一个问题",
-                "Function": HotReload(连接网络回答问题)
-            }
-        })
+        function_plugins["连接网络回答问题（输入问题后点击该插件，需要访问谷歌）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,  # 加入下拉菜单中
+            # "Info": "连接网络回答问题（需要访问谷歌）| 输入参数是一个问题",
+            "Function": HotReload(连接网络回答问题),
+        }
         from crazy_functions.联网的ChatGPT_bing版 import 连接bing搜索回答问题
-        function_plugins.update({
-            "连接网络回答问题（中文Bing版，输入问题后点击该插件）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,  # 加入下拉菜单中
-                "Info": "连接网络回答问题（需要访问中文Bing）| 输入参数是一个问题",
-                "Function": HotReload(连接bing搜索回答问题)
-            }
-        })
+        function_plugins["连接网络回答问题（中文Bing版，输入问题后点击该插件）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,  # 加入下拉菜单中
+            "Info": "连接网络回答问题（需要访问中文Bing）| 输入参数是一个问题",
+            "Function": HotReload(连接bing搜索回答问题),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.解析项目源代码 import 解析任意code项目
-        function_plugins.update({
-            "解析项目源代码（手动指定和筛选源代码文件类型）": {
-                "Group": "编程",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
-                "ArgsReminder": "输入时用逗号隔开, *代表通配符, 加了^代表不匹配; 不输入代表全部匹配。例如: \"*.c, ^*.cpp, config.toml, ^*.toml\"",  # 高级参数输入区的显示提示
-                "Function": HotReload(解析任意code项目)
-            },
-        })
+        function_plugins["解析项目源代码（手动指定和筛选源代码文件类型）"] = {
+            "Group": "编程",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
+            "ArgsReminder": "输入时用逗号隔开, *代表通配符, 加了^代表不匹配; 不输入代表全部匹配。例如: \"*.c, ^*.cpp, config.toml, ^*.toml\"",  # 高级参数输入区的显示提示
+            "Function": HotReload(解析任意code项目),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.询问多个大语言模型 import 同时问询_指定模型
-        function_plugins.update({
-            "询问多个GPT模型（手动指定询问哪些模型）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
-                "ArgsReminder": "支持任意数量的llm接口，用&符号分隔。例如chatglm&gpt-3.5-turbo&api2d-gpt-4",  # 高级参数输入区的显示提示
-                "Function": HotReload(同时问询_指定模型)
-            },
-        })
+        function_plugins["询问多个GPT模型（手动指定询问哪些模型）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
+            "ArgsReminder": "支持任意数量的llm接口，用&符号分隔。例如chatglm&gpt-3.5-turbo&api2d-gpt-4",  # 高级参数输入区的显示提示
+            "Function": HotReload(同时问询_指定模型),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.图片生成 import 图片生成_DALLE2, 图片生成_DALLE3, 图片修改_DALLE2
-        function_plugins.update({
-            "图片生成_DALLE2 （先切换模型到openai或api2d）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
-                "ArgsReminder": "在这里输入分辨率, 如1024x1024（默认），支持 256x256, 512x512, 1024x1024",  # 高级参数输入区的显示提示
-                "Info": "使用DALLE2生成图片 | 输入参数字符串，提供图像的内容",
-                "Function": HotReload(图片生成_DALLE2)
-            },
-        })
-        function_plugins.update({
-            "图片生成_DALLE3 （先切换模型到openai或api2d）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
-                "ArgsReminder": "在这里输入分辨率, 如1024x1024（默认），支持 1024x1024, 1792x1024, 1024x1792。如需生成高清图像，请输入 1024x1024-HD, 1792x1024-HD, 1024x1792-HD。",  # 高级参数输入区的显示提示
-                "Info": "使用DALLE3生成图片 | 输入参数字符串，提供图像的内容",
-                "Function": HotReload(图片生成_DALLE3)
-            },
-        })
-        function_plugins.update({
-            "图片修改_DALLE2 （先切换模型到openai或api2d）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": False,  # 调用时，唤起高级参数输入区（默认False）
-                # "Info": "使用DALLE2修改图片 | 输入参数字符串，提供图像的内容",
-                "Function": HotReload(图片修改_DALLE2)
-            },
-        })
+        function_plugins["图片生成_DALLE2 （先切换模型到openai或api2d）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
+            "ArgsReminder": "在这里输入分辨率, 如1024x1024（默认），支持 256x256, 512x512, 1024x1024",  # 高级参数输入区的显示提示
+            "Info": "使用DALLE2生成图片 | 输入参数字符串，提供图像的内容",
+            "Function": HotReload(图片生成_DALLE2),
+        }
+        function_plugins["图片生成_DALLE3 （先切换模型到openai或api2d）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,  # 调用时，唤起高级参数输入区（默认False）
+            "ArgsReminder": "在这里输入分辨率, 如1024x1024（默认），支持 1024x1024, 1792x1024, 1024x1792。如需生成高清图像，请输入 1024x1024-HD, 1792x1024-HD, 1024x1792-HD。",  # 高级参数输入区的显示提示
+            "Info": "使用DALLE3生成图片 | 输入参数字符串，提供图像的内容",
+            "Function": HotReload(图片生成_DALLE3),
+        }
+        function_plugins["图片修改_DALLE2 （先切换模型到openai或api2d）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": False,  # 调用时，唤起高级参数输入区（默认False）
+            # "Info": "使用DALLE2修改图片 | 输入参数字符串，提供图像的内容",
+            "Function": HotReload(图片修改_DALLE2),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.总结音视频 import 总结音视频
-        function_plugins.update({
-            "批量总结音视频（输入路径或上传压缩包）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,
-                "ArgsReminder": "调用openai api 使用whisper-1模型, 目前支持的格式:mp4, m4a, wav, mpga, mpeg, mp3。此处可以输入解析提示，例如：解析为简体中文（默认）。",
-                "Info": "批量总结音频或视频 | 输入参数为路径",
-                "Function": HotReload(总结音视频)
-            }
-        })
+        function_plugins["批量总结音视频（输入路径或上传压缩包）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,
+            "ArgsReminder": "调用openai api 使用whisper-1模型, 目前支持的格式:mp4, m4a, wav, mpga, mpeg, mp3。此处可以输入解析提示，例如：解析为简体中文（默认）。",
+            "Info": "批量总结音频或视频 | 输入参数为路径",
+            "Function": HotReload(总结音视频),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.数学动画生成manim import 动画生成
-        function_plugins.update({
-            "数学动画生成（Manim）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "Info": "按照自然语言描述生成一个动画 | 输入参数是一段话",
-                "Function": HotReload(动画生成)
-            }
-        })
+        function_plugins["数学动画生成（Manim）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "Info": "按照自然语言描述生成一个动画 | 输入参数是一段话",
+            "Function": HotReload(动画生成),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.批量Markdown翻译 import Markdown翻译指定语言
-        function_plugins.update({
-            "Markdown翻译（指定翻译成何种语言）": {
-                "Group": "编程",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,
-                "ArgsReminder": "请输入要翻译成哪种语言，默认为Chinese。",
-                "Function": HotReload(Markdown翻译指定语言)
-            }
-        })
+        function_plugins["Markdown翻译（指定翻译成何种语言）"] = {
+            "Group": "编程",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,
+            "ArgsReminder": "请输入要翻译成哪种语言，默认为Chinese。",
+            "Function": HotReload(Markdown翻译指定语言),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.Langchain知识库 import 知识库问答
-        function_plugins.update({
-            "构建知识库（先上传文件素材,再运行此插件）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,
-                "ArgsReminder": "此处待注入的知识库名称id, 默认为default。文件进入知识库后可长期保存。可以通过再次调用本插件的方式，向知识库追加更多文档。",
-                "Function": HotReload(知识库问答)
-            }
-        })
+        function_plugins["构建知识库（先上传文件素材,再运行此插件）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,
+            "ArgsReminder": "此处待注入的知识库名称id, 默认为default。文件进入知识库后可长期保存。可以通过再次调用本插件的方式，向知识库追加更多文档。",
+            "Function": HotReload(知识库问答),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.Langchain知识库 import 读取知识库作答
-        function_plugins.update({
-            "知识库问答（构建知识库后,再运行此插件）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,
-                "ArgsReminder": "待提取的知识库名称id, 默认为default, 您需要构建知识库后再运行此插件。",
-                "Function": HotReload(读取知识库作答)
-            }
-        })
+        function_plugins["知识库问答（构建知识库后,再运行此插件）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,
+            "ArgsReminder": "待提取的知识库名称id, 默认为default, 您需要构建知识库后再运行此插件。",
+            "Function": HotReload(读取知识库作答),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.交互功能函数模板 import 交互功能模板函数
-        function_plugins.update({
-            "交互功能模板Demo函数（查找wallhaven.cc的壁纸）": {
-                "Group": "对话",
-                "Color": "stop",
-                "AsButton": False,
-                "Function": HotReload(交互功能模板函数)
-            }
-        })
+        function_plugins["交互功能模板Demo函数（查找wallhaven.cc的壁纸）"] = {
+            "Group": "对话",
+            "Color": "stop",
+            "AsButton": False,
+            "Function": HotReload(交互功能模板函数),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.Latex输出PDF结果 import Latex英文纠错加PDF对比
-        function_plugins.update({
-            "Latex英文纠错+高亮修正位置 [需Latex]": {
-                "Group": "学术",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,
-                "ArgsReminder": "如果有必要, 请在此处追加更细致的矫错指令（使用英文）。",
-                "Function": HotReload(Latex英文纠错加PDF对比)
-            }
-        })
+        function_plugins["Latex英文纠错+高亮修正位置 [需Latex]"] = {
+            "Group": "学术",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,
+            "ArgsReminder": "如果有必要, 请在此处追加更细致的矫错指令（使用英文）。",
+            "Function": HotReload(Latex英文纠错加PDF对比),
+        }
         from crazy_functions.Latex输出PDF结果 import Latex翻译中文并重新编译PDF
-        function_plugins.update({
-            "Arxiv论文精细翻译（输入arxivID）[需Latex]": {
-                "Group": "学术",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,
-                "ArgsReminder":
-                    "如果有必要, 请在此处给出自定义翻译命令, 解决部分词汇翻译不准确的问题。 " +
-                    "例如当单词'agent'翻译不准确时, 请尝试把以下指令复制到高级参数区: " +
-                    'If the term "agent" is used in this section, it should be translated to "智能体". ',
-                "Info": "Arixv论文精细翻译 | 输入参数arxiv论文的ID，比如1812.10695",
-                "Function": HotReload(Latex翻译中文并重新编译PDF)
-            }
-        })
-        function_plugins.update({
-            "本地Latex论文精细翻译（上传Latex项目）[需Latex]": {
-                "Group": "学术",
-                "Color": "stop",
-                "AsButton": False,
-                "AdvancedArgs": True,
-                "ArgsReminder":
-                    "如果有必要, 请在此处给出自定义翻译命令, 解决部分词汇翻译不准确的问题。 " +
-                    "例如当单词'agent'翻译不准确时, 请尝试把以下指令复制到高级参数区: " +
-                    'If the term "agent" is used in this section, it should be translated to "智能体". ',
-                "Info": "本地Latex论文精细翻译 | 输入参数是路径",
-                "Function": HotReload(Latex翻译中文并重新编译PDF)
-            }
-        })
+        function_plugins["Arxiv论文精细翻译（输入arxivID）[需Latex]"] = {
+            "Group": "学术",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,
+            "ArgsReminder": "如果有必要, 请在此处给出自定义翻译命令, 解决部分词汇翻译不准确的问题。 "
+            + "例如当单词'agent'翻译不准确时, 请尝试把以下指令复制到高级参数区: "
+            + 'If the term "agent" is used in this section, it should be translated to "智能体". ',
+            "Info": "Arixv论文精细翻译 | 输入参数arxiv论文的ID，比如1812.10695",
+            "Function": HotReload(Latex翻译中文并重新编译PDF),
+        }
+        function_plugins["本地Latex论文精细翻译（上传Latex项目）[需Latex]"] = {
+            "Group": "学术",
+            "Color": "stop",
+            "AsButton": False,
+            "AdvancedArgs": True,
+            "ArgsReminder": "如果有必要, 请在此处给出自定义翻译命令, 解决部分词汇翻译不准确的问题。 "
+            + "例如当单词'agent'翻译不准确时, 请尝试把以下指令复制到高级参数区: "
+            + 'If the term "agent" is used in this section, it should be translated to "智能体". ',
+            "Info": "本地Latex论文精细翻译 | 输入参数是路径",
+            "Function": HotReload(Latex翻译中文并重新编译PDF),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from toolbox import get_conf
-        ENABLE_AUDIO = get_conf('ENABLE_AUDIO')
-        if ENABLE_AUDIO:
+        if ENABLE_AUDIO := get_conf('ENABLE_AUDIO'):
             from crazy_functions.语音助手 import 语音助手
-            function_plugins.update({
-                "实时语音对话": {
-                    "Group": "对话",
-                    "Color": "stop",
-                    "AsButton": True,
-                    "Info": "这是一个时刻聆听着的语音对话助手 | 没有输入参数",
-                    "Function": HotReload(语音助手)
-                }
-            })
+            function_plugins["实时语音对话"] = {
+                "Group": "对话",
+                "Color": "stop",
+                "AsButton": True,
+                "Info": "这是一个时刻聆听着的语音对话助手 | 没有输入参数",
+                "Function": HotReload(语音助手),
+            }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.批量翻译PDF文档_NOUGAT import 批量翻译PDF文档
-        function_plugins.update({
-            "精准翻译PDF文档（NOUGAT）": {
-                "Group": "学术",
-                "Color": "stop",
-                "AsButton": False,
-                "Function": HotReload(批量翻译PDF文档)
-            }
-        })
+        function_plugins["精准翻译PDF文档（NOUGAT）"] = {
+            "Group": "学术",
+            "Color": "stop",
+            "AsButton": False,
+            "Function": HotReload(批量翻译PDF文档),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.函数动态生成 import 函数动态生成
-        function_plugins.update({
-            "动态代码解释器（CodeInterpreter）": {
-                "Group": "智能体",
-                "Color": "stop",
-                "AsButton": False,
-                "Function": HotReload(函数动态生成)
-            }
-        })
+        function_plugins["动态代码解释器（CodeInterpreter）"] = {
+            "Group": "智能体",
+            "Color": "stop",
+            "AsButton": False,
+            "Function": HotReload(函数动态生成),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')
 
     try:
         from crazy_functions.多智能体 import 多智能体终端
-        function_plugins.update({
-            "AutoGen多智能体终端（仅供测试）": {
-                "Group": "智能体",
-                "Color": "stop",
-                "AsButton": False,
-                "Function": HotReload(多智能体终端)
-            }
-        })
+        function_plugins["AutoGen多智能体终端（仅供测试）"] = {
+            "Group": "智能体",
+            "Color": "stop",
+            "AsButton": False,
+            "Function": HotReload(多智能体终端),
+        }
     except:
         print(trimmed_format_exc())
         print('Load function plugin failed')

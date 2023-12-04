@@ -13,13 +13,18 @@ import re
 def chatbot2history(chatbot):
     history = []
     for c in chatbot:
-        for q in c:
-            if q in ["[ 请讲话 ]", "[ 等待GPT响应 ]", "[ 正在等您说完问题 ]"]:
-                continue
-            elif q.startswith("[ 正在等您说完问题 ]"):
-                continue
-            else:
-                history.append(q.strip('<div class="markdown-body">').strip('</div>').strip('<p>').strip('</p>'))
+        history.extend(
+            q.strip('<div class="markdown-body">')
+            .strip('</div>')
+            .strip('<p>')
+            .strip('</p>')
+            for q in c
+            if q not in ["[ 请讲话 ]", "[ 等待GPT响应 ]", "[ 正在等您说完问题 ]"]
+            and (
+                q in ["[ 请讲话 ]", "[ 等待GPT响应 ]", "[ 正在等您说完问题 ]"]
+                or not q.startswith("[ 正在等您说完问题 ]")
+            )
+        )
     return history
 
 def visualize_audio(chatbot, audio_shape):
@@ -27,8 +32,8 @@ def visualize_audio(chatbot, audio_shape):
     chatbot[-1] = list(chatbot[-1])
     p1 = '「'
     p2 = '」'
-    chatbot[-1][-1] = re.sub(p1+r'(.*)'+p2, '', chatbot[-1][-1])
-    chatbot[-1][-1] += (p1+f"`{audio_shape}`"+p2)
+    chatbot[-1][-1] = re.sub(f'{p1}(.*){p2}', '', chatbot[-1][-1])
+    chatbot[-1][-1] += f"{p1}`{audio_shape}`{p2}"
 
 class AsyncGptTask():
     def __init__(self) -> None:

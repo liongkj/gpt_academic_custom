@@ -10,18 +10,17 @@ def write_numpy_to_wave(filename, rate, data, add_header=False):
         # ravel gives a c-contiguous buffer
         fid.write(data.ravel().view('b').data)
 
-    if hasattr(filename, 'write'):
-        fid = filename
-    else:
-        fid = open(filename, 'wb')
-
+    fid = filename if hasattr(filename, 'write') else open(filename, 'wb')
     fs = rate
 
     try:
         dkind = data.dtype.kind
-        if not (dkind == 'i' or dkind == 'f' or (dkind == 'u' and
-                                                 data.dtype.itemsize == 1)):
-            raise ValueError("Unsupported data type '%s'" % data.dtype)
+        if (
+            dkind != 'i'
+            and dkind != 'f'
+            and (dkind != 'u' or data.dtype.itemsize != 1)
+        ):
+            raise ValueError(f"Unsupported data type '{data.dtype}'")
 
         header_data = b''
 
@@ -31,21 +30,15 @@ def write_numpy_to_wave(filename, rate, data, add_header=False):
 
         # fmt chunk
         header_data += b'fmt '
-        if dkind == 'f':
-            format_tag = WAVE_FORMAT.IEEE_FLOAT
-        else:
-            format_tag = WAVE_FORMAT.PCM
-        if data.ndim == 1:
-            channels = 1
-        else:
-            channels = data.shape[1]
+        format_tag = WAVE_FORMAT.IEEE_FLOAT if dkind == 'f' else WAVE_FORMAT.PCM
+        channels = 1 if data.ndim == 1 else data.shape[1]
         bit_depth = data.dtype.itemsize * 8
         bytes_per_second = fs*(bit_depth // 8)*channels
         block_align = channels * (bit_depth // 8)
 
         fmt_chunk_data = struct.pack('<HHIIHH', format_tag, channels, fs,
                                      bytes_per_second, block_align, bit_depth)
-        if not (dkind == 'i' or dkind == 'u'):
+        if dkind not in ['i', 'u']:
             # add cbSize field for non-PCM files
             fmt_chunk_data += b'\x00\x00'
 
@@ -53,7 +46,7 @@ def write_numpy_to_wave(filename, rate, data, add_header=False):
         header_data += fmt_chunk_data
 
         # fact chunk (non-PCM files)
-        if not (dkind == 'i' or dkind == 'u'):
+        if dkind not in ['i', 'u']:
             header_data += b'fact'
             header_data += struct.pack('<II', 4, data.shape[0])
 
@@ -90,17 +83,14 @@ def is_speaker_speaking(vad, data, sample_rate):
     # A frame must be either 10, 20, or 30 ms in duration:
     frame_duration = 30
     n_bit_each = int(sample_rate * frame_duration / 1000)*2 # x2 because audio is 16 bit (2 bytes)
-    res_list = []
-    for t in range(len(data)):
-        if t!=0 and t % n_bit_each == 0:
-            res_list.append(vad.is_speech(data[t-n_bit_each:t], sample_rate))
-    
+    res_list = [
+        vad.is_speech(data[t - n_bit_each : t], sample_rate)
+        for t in range(len(data))
+        if t != 0 and t % n_bit_each == 0
+    ]
     info = ''.join(['^' if r else '.' for r in res_list])
     info = info[:10]
-    if any(res_list):
-        return True, info
-    else:
-        return False, info
+    return (True, info) if any(res_list) else (False, info)
 
 
 class AliyunASR():
@@ -121,12 +111,10 @@ class AliyunASR():
         pass
 
     def test_on_error(self, message, *args):
-        logging.error("on_error args=>{}".format(args))
-        pass
+        logging.error(f"on_error args=>{args}")
 
     def test_on_close(self, *args):
         self.aliyun_service_ok = False
-        pass
 
     def test_on_result_chg(self, message, *args):
         # print("test_on_chg:{}".format(message))
@@ -253,8 +241,8 @@ class AliyunASR():
             if 'Token' in jss and 'Id' in jss['Token']:
                 token = jss['Token']['Id']
                 expireTime = jss['Token']['ExpireTime']
-                print("token = " + token)
-                print("expireTime = " + str(expireTime))
+                print(f"token = {token}")
+                print(f"expireTime = {str(expireTime)}")
         except Exception as e:
             print(e)
 

@@ -9,9 +9,7 @@ model_name = '星火认知大模型'
 
 def validate_key():
     XFYUN_APPID = get_conf('XFYUN_APPID')
-    if XFYUN_APPID == '00000000' or XFYUN_APPID == '': 
-        return False
-    return True
+    return XFYUN_APPID not in ['00000000', '']
 
 def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="", observe_window=[], console_slience=False):
     """

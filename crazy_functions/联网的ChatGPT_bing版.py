@@ -13,8 +13,7 @@ def bing_search(query, proxies=None):
     soup = BeautifulSoup(response.content, 'html.parser')
     results = []
     for g in soup.find_all('li', class_='b_algo'):
-        anchors = g.find_all('a')
-        if anchors:
+        if anchors := g.find_all('a'):
             link = anchors[0]['href']
             if not link.startswith('http'):
                 continue
@@ -85,7 +84,7 @@ def 连接bing搜索回答问题(txt, llm_kwargs, plugin_kwargs, chatbot, histor
     for index, url in enumerate(urls[:max_search_result]):
         res = scrape_text(url['link'], proxies)
         history.extend([f"第{index}份搜索结果：", res])
-        chatbot.append([f"第{index}份搜索结果：", res[:500]+"......"])
+        chatbot.append([f"第{index}份搜索结果：", f"{res[:500]}......"])
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 由于请求gpt需要一段时间，我们先及时地做一次界面更新
 
     # ------------- < 第3步：ChatGPT综合 > -------------
@@ -101,6 +100,7 @@ def 连接bing搜索回答问题(txt, llm_kwargs, plugin_kwargs, chatbot, histor
         sys_prompt="请从给定的若干条搜索结果中抽取信息，对最相关的两个搜索结果进行总结，然后回答问题。"
     )
     chatbot[-1] = (i_say, gpt_say)
-    history.append(i_say);history.append(gpt_say)
+    history.append(i_say)
+    history.append(gpt_say)
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
 

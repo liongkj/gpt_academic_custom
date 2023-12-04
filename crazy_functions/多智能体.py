@@ -45,30 +45,39 @@ def 多智能体终端(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_
     ]
     from request_llms.bridge_all import model_info
     if model_info[llm_kwargs['llm_model']]["max_token"] < 8000: # 至少是8k上下文的模型
-        chatbot.append([f"处理任务: {txt}", f"当前插件只支持{str(supported_llms)}, 当前模型{llm_kwargs['llm_model']}的最大上下文长度太短, 不能支撑AutoGen运行。"])
+        chatbot.append(
+            [
+                f"处理任务: {txt}",
+                f"当前插件只支持{supported_llms}, 当前模型{llm_kwargs['llm_model']}的最大上下文长度太短, 不能支撑AutoGen运行。",
+            ]
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
     if model_info[llm_kwargs['llm_model']]["endpoint"] is not None: # 如果不是本地模型，加载API_KEY
         llm_kwargs['api_key'] = select_api_key(llm_kwargs['api_key'], llm_kwargs['llm_model'])
-    
+
     # 检查当前的模型是否符合要求
     API_URL_REDIRECT = get_conf('API_URL_REDIRECT')
     if len(API_URL_REDIRECT) > 0:
-        chatbot.append([f"处理任务: {txt}", f"暂不支持中转."])
+        chatbot.append([f"处理任务: {txt}", "暂不支持中转."])
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    
+
     # 尝试导入依赖，如果缺少依赖，则给出安装建议
     try:
         import autogen
         if get_conf("AUTOGEN_USE_DOCKER"):
             import docker
     except:
-        chatbot.append([ f"处理任务: {txt}", 
-            f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade pyautogen docker```。"])
+        chatbot.append(
+            [
+                f"处理任务: {txt}",
+                "导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade pyautogen docker```。",
+            ]
+        )
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    
+
     # 尝试导入依赖，如果缺少依赖，则给出安装建议
     try:
         import autogen
@@ -76,10 +85,10 @@ def 多智能体终端(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_
         if get_conf("AUTOGEN_USE_DOCKER"):
             subprocess.Popen(["docker", "--version"])
     except:
-        chatbot.append([f"处理任务: {txt}", f"缺少docker运行环境！"])
+        chatbot.append([f"处理任务: {txt}", "缺少docker运行环境！"])
         yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
         return
-    
+
     # 解锁插件
     chatbot.get_cookies()['lock_plugin'] = None
     persistent_class_multi_user_manager = GradioMultiuserManagerForPersistentClasses()

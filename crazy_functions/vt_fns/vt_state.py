@@ -20,9 +20,8 @@ class VoidTerminalState():
         setattr(self, key, value)
         chatbot._cookies['plugin_state'] = pickle.dumps(self)
 
-    def get_state(chatbot):
-        state = chatbot._cookies.get('plugin_state', None)
-        if state is not None:   state = pickle.loads(state)
-        else:                   state = VoidTerminalState()
-        state.chatbot = chatbot
+    def get_state(self):
+        state = self._cookies.get('plugin_state', None)
+        state = pickle.loads(state) if state is not None else VoidTerminalState()
+        state.chatbot = self
         return state

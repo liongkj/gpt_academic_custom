@@ -7,8 +7,7 @@ model_name = '智谱AI大模型'
 
 def validate_key():
     ZHIPUAI_API_KEY = get_conf("ZHIPUAI_API_KEY")
-    if ZHIPUAI_API_KEY == '': return False
-    return True
+    return ZHIPUAI_API_KEY != ''
 
 def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="", observe_window=[], console_slience=False):
     """
@@ -42,10 +41,14 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
     try:
         check_packages(["zhipuai"])
     except:
-        yield from update_ui_lastest_msg(f"导入软件依赖失败。使用该模型需要额外依赖，安装方法```pip install --upgrade zhipuai```。",
-                                         chatbot=chatbot, history=history, delay=0)
+        yield from update_ui_lastest_msg(
+            "导入软件依赖失败。使用该模型需要额外依赖，安装方法```pip install --upgrade zhipuai```。",
+            chatbot=chatbot,
+            history=history,
+            delay=0,
+        )
         return
-    
+
     if validate_key() is False:
         yield from update_ui_lastest_msg(lastmsg="[Local Message] 请配置ZHIPUAI_API_KEY", chatbot=chatbot, history=history, delay=0)
         return

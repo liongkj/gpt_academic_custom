@@ -21,7 +21,7 @@ def input_clipping(inputs, history, max_token_limit):
     n_token = get_token_num('\n'.join(everything))
     everything_token = [get_token_num(e) for e in everything]
     delta = max(everything_token) // 16 # 截断时的颗粒度
-        
+
     while n_token > max_token_limit:
         where = np.argmax(everything_token)
         encoded = enc.encode(everything[where], disallowed_special=())
@@ -32,8 +32,6 @@ def input_clipping(inputs, history, max_token_limit):
 
     if mode == 'input-and-history':
         inputs = everything[0]
-    else:
-        pass
     history = everything[1:]
     return inputs, history
 
@@ -137,9 +135,7 @@ def request_gpt_model_in_new_thread_with_ui_alive(
 
 def can_multi_process(llm):
     if llm.startswith('gpt-'): return True
-    if llm.startswith('api2d-'): return True
-    if llm.startswith('azure-'): return True
-    return False
+    return True if llm.startswith('api2d-') else bool(llm.startswith('azure-'))
 
 def request_gpt_model_multi_threads_with_very_awesome_ui_and_high_efficiency(
         inputs_array, inputs_show_user_array, llm_kwargs, 
@@ -187,7 +183,7 @@ def request_gpt_model_multi_threads_with_very_awesome_ui_and_high_efficiency(
     # 屏蔽掉 chatglm的多线程，可能会导致严重卡顿
     if not can_multi_process(llm_kwargs['llm_model']):
         max_workers = 1
-        
+
     executor = ThreadPoolExecutor(max_workers=max_workers)
     n_frag = len(inputs_array)
     # 用户反馈
@@ -228,7 +224,7 @@ def request_gpt_model_multi_threads_with_very_awesome_ui_and_high_efficiency(
                     EXCEED_ALLO = 512 + 512 * exceeded_cnt
                     inputs, history = input_clipping(inputs, history, max_token_limit=MAX_TOKEN-EXCEED_ALLO)
                     gpt_say += f'[Local Message] 警告，文本过长将进行截断，Token溢出数：{n_exceed}。\n\n'
-                    mutable[index][2] = f"截断重试"
+                    mutable[index][2] = "截断重试"
                     continue # 返回重试
                 else:
                     # 【选择放弃】
@@ -248,7 +244,7 @@ def request_gpt_model_multi_threads_with_very_awesome_ui_and_high_efficiency(
                     retry_op -= 1
                     wait = random.randint(5, 20)
                     if ("Rate limit reached" in tb_str) or ("Too Many Requests" in tb_str):
-                        wait = wait * 3
+                        wait *= 3
                         fail_info = "OpenAI绑定信用卡可解除频率限制 "
                     else:
                         fail_info = ""
@@ -301,7 +297,7 @@ def request_gpt_model_multi_threads_with_very_awesome_ui_and_high_efficiency(
     for inputs_show_user, f in zip(inputs_show_user_array, futures):
         gpt_res = f.result()
         gpt_response_collection.extend([inputs_show_user, gpt_res])
-    
+
     # 是否在结束时，在界面上显示结果
     if show_user_at_complete:
         for inputs_show_user, f in zip(inputs_show_user_array, futures):
@@ -316,26 +312,26 @@ def breakdown_txt_to_satisfy_token_limit(txt, get_token_fn, limit):
     def cut(txt_tocut, must_break_at_empty_line):  # 递归
         if get_token_fn(txt_tocut) <= limit:
             return [txt_tocut]
-        else:
-            lines = txt_tocut.split('\n')
-            estimated_line_cut = limit / get_token_fn(txt_tocut) * len(lines)
-            estimated_line_cut = int(estimated_line_cut)
-            for cnt in reversed(range(estimated_line_cut)):
-                if must_break_at_empty_line:
-                    if lines[cnt] != "":
-                        continue
-                print(cnt)
-                prev = "\n".join(lines[:cnt])
-                post = "\n".join(lines[cnt:])
-                if get_token_fn(prev) < limit:
-                    break
-            if cnt == 0:
-                raise RuntimeError("存在一行极长的文本！")
-            # print(len(post))
-            # 列表递归接龙
-            result = [prev]
-            result.extend(cut(post, must_break_at_empty_line))
-            return result
+        lines = txt_tocut.split('\n')
+        estimated_line_cut = limit / get_token_fn(txt_tocut) * len(lines)
+        estimated_line_cut = int(estimated_line_cut)
+        for cnt in reversed(range(estimated_line_cut)):
+            if must_break_at_empty_line:
+                if lines[cnt] != "":
+                    continue
+            print(cnt)
+            prev = "\n".join(lines[:cnt])
+            post = "\n".join(lines[cnt:])
+            if get_token_fn(prev) < limit:
+                break
+        if cnt == 0:
+            raise RuntimeError("存在一行极长的文本！")
+        # print(len(post))
+        # 列表递归接龙
+        result = [prev]
+        result.extend(cut(post, must_break_at_empty_line))
+        return result
+
     try:
         return cut(txt, must_break_at_empty_line=True)
     except RuntimeError:
@@ -346,39 +342,43 @@ def force_breakdown(txt, limit, get_token_fn):
     """
     当无法用标点、空行分割时，我们用最暴力的方法切割
     """
-    for i in reversed(range(len(txt))):
-        if get_token_fn(txt[:i]) < limit:
-            return txt[:i], txt[i:]
-    return "Tiktoken未知错误", "Tiktoken未知错误"
+    return next(
+        (
+            (txt[:i], txt[i:])
+            for i in reversed(range(len(txt)))
+            if get_token_fn(txt[:i]) < limit
+        ),
+        ("Tiktoken未知错误", "Tiktoken未知错误"),
+    )
 
 def breakdown_txt_to_satisfy_token_limit_for_pdf(txt, get_token_fn, limit):
     # 递归
     def cut(txt_tocut, must_break_at_empty_line, break_anyway=False):  
         if get_token_fn(txt_tocut) <= limit:
             return [txt_tocut]
-        else:
-            lines = txt_tocut.split('\n')
-            estimated_line_cut = limit / get_token_fn(txt_tocut) * len(lines)
-            estimated_line_cut = int(estimated_line_cut)
-            cnt = 0
-            for cnt in reversed(range(estimated_line_cut)):
-                if must_break_at_empty_line:
-                    if lines[cnt] != "":
-                        continue
-                prev = "\n".join(lines[:cnt])
-                post = "\n".join(lines[cnt:])
-                if get_token_fn(prev) < limit:
-                    break
-            if cnt == 0:
-                if break_anyway:
-                    prev, post = force_breakdown(txt_tocut, limit, get_token_fn)
-                else:
-                    raise RuntimeError(f"存在一行极长的文本！{txt_tocut}")
-            # print(len(post))
-            # 列表递归接龙
-            result = [prev]
-            result.extend(cut(post, must_break_at_empty_line, break_anyway=break_anyway))
-            return result
+        lines = txt_tocut.split('\n')
+        estimated_line_cut = limit / get_token_fn(txt_tocut) * len(lines)
+        estimated_line_cut = int(estimated_line_cut)
+        cnt = 0
+        for cnt in reversed(range(estimated_line_cut)):
+            if must_break_at_empty_line:
+                if lines[cnt] != "":
+                    continue
+            prev = "\n".join(lines[:cnt])
+            post = "\n".join(lines[cnt:])
+            if get_token_fn(prev) < limit:
+                break
+        if cnt == 0:
+            if break_anyway:
+                prev, post = force_breakdown(txt_tocut, limit, get_token_fn)
+            else:
+                raise RuntimeError(f"存在一行极长的文本！{txt_tocut}")
+        # print(len(post))
+        # 列表递归接龙
+        result = [prev]
+        result.extend(cut(post, must_break_at_empty_line, break_anyway=break_anyway))
+        return result
+
     try:
         # 第1次尝试，将双空行（\n\n）作为切分点
         return cut(txt, must_break_at_empty_line=True)
@@ -440,7 +440,7 @@ def read_and_clean_pdf_text(fp):
             if wtf['size'] not in fsize_statiscs: fsize_statiscs[wtf['size']] = 0
             fsize_statiscs[wtf['size']] += len(wtf['text'])
         return max(fsize_statiscs, key=fsize_statiscs.get)
-        
+
     def ffsize_same(a,b):
         """
         提取字体大小是否近似相等
@@ -462,12 +462,12 @@ def read_and_clean_pdf_text(fp):
                     pf = 998
                     for l in t['lines']:
                         txt_line = "".join([wtf['text'] for wtf in l['spans']])
-                        if len(txt_line) == 0: continue
+                        if not txt_line: continue
                         pf = primary_ffsize(l)
                         meta_line.append([txt_line, pf, l['bbox'], l])
                         for wtf in l['spans']: # for l in t['lines']:
                             meta_span.append([wtf['text'], wtf['size'], len(wtf['text'])])
-                    # meta_line.append(["NEW_BLOCK", pf])
+                                    # meta_line.append(["NEW_BLOCK", pf])
             # 块元提取                           for each word segment with in line                       for each line         cross-line words                          for each block
             meta_txt.extend([" ".join(["".join([wtf['text'] for wtf in l['spans']]) for l in t['lines']]).replace(
                 '- ', '') for t in text_areas['blocks'] if 'lines' in t])
@@ -476,7 +476,7 @@ def read_and_clean_pdf_text(fp):
             if index == 0:
                 page_one_meta = [" ".join(["".join([wtf['text'] for wtf in l['spans']]) for l in t['lines']]).replace(
                     '- ', '') for t in text_areas['blocks'] if 'lines' in t]
-                
+
         ############################## <第 2 步，获取正文主字体> ##################################
         try:
             fsize_statiscs = {}
@@ -514,7 +514,7 @@ def read_and_clean_pdf_text(fp):
                     # 单行 + 字体大
                     mega_sec.append(copy.deepcopy(sec))
                     sec = []
-                    sec.append("# " + line[fc])
+                    sec.append(f"# {line[fc]}")
                 else:
                     # 尝试识别section
                     if meta_line[index-1][fs] > meta_line[index][fs]:
@@ -536,6 +536,7 @@ def read_and_clean_pdf_text(fp):
                 if len(block_txt) < 100:
                     meta_txt[index] = '\n'
             return meta_txt
+
         meta_txt = 把字符太少的块清除为回车(meta_txt)
 
         def 清理多余的空行(meta_txt):
@@ -543,16 +544,15 @@ def read_and_clean_pdf_text(fp):
                 if meta_txt[index] == '\n' and meta_txt[index-1] == '\n':
                     meta_txt.pop(index)
             return meta_txt
+
         meta_txt = 清理多余的空行(meta_txt)
 
         def 合并小写开头的段落块(meta_txt):
             def starts_with_lowercase_word(s):
                 pattern = r"^[a-z]+"
                 match = re.match(pattern, s)
-                if match:
-                    return True
-                else:
-                    return False
+                return bool(match)
+
             for _ in range(100):
                 for index, block_txt in enumerate(meta_txt):
                     if starts_with_lowercase_word(block_txt):
@@ -563,6 +563,7 @@ def read_and_clean_pdf_text(fp):
                         meta_txt[index-1] += meta_txt[index]
                         meta_txt[index] = '\n'
             return meta_txt
+
         meta_txt = 合并小写开头的段落块(meta_txt)
         meta_txt = 清理多余的空行(meta_txt)
 
@@ -574,15 +575,15 @@ def read_and_clean_pdf_text(fp):
         # 换行 -> 双换行
         meta_txt = meta_txt.replace('\n', '\n\n')
 
-        ############################## <第 5 步，展示分割效果> ##################################
-        # for f in finals:
-        #    print亮黄(f)
-        #    print亮绿('***************************')
+            ############################## <第 5 步，展示分割效果> ##################################
+            # for f in finals:
+            #    print亮黄(f)
+            #    print亮绿('***************************')
 
     return meta_txt, page_one_meta
 
 
-def get_files_from_everything(txt, type): # type='.md'
+def get_files_from_everything(txt, type):    # type='.md'
     """
     这个函数是用来获取指定目录下所有指定类型（如.md）的文件，并且对于网络上的文件，也可以获取它。
     下面是对每个参数和返回值的说明：
@@ -619,8 +620,8 @@ def get_files_from_everything(txt, type): # type='.md'
     elif os.path.exists(txt):
         # 本地路径，递归搜索
         project_folder = txt
-        file_manifest = [f for f in glob.glob(f'{project_folder}/**/*'+type, recursive=True)]
-        if len(file_manifest) == 0:
+        file_manifest = list(glob.glob(f'{project_folder}/**/*{type}', recursive=True))
+        if not file_manifest:
             success = False
     else:
         project_folder = None
@@ -688,7 +689,7 @@ class knowledge_archive_interface():
 
     def answer_with_archive_by_id(self, txt, id):
         self.threadLock.acquire()
-        if not self.current_id == id:
+        if self.current_id != id:
             self.current_id = id
             from zh_langchain import construct_vector_store
             self.qa_handle, self.kai_path = construct_vector_store(   
@@ -751,7 +752,7 @@ class nougat_interface():
                                          chatbot=chatbot, history=history, delay=0)
         self.nougat_with_timeout(f'nougat --out "{os.path.abspath(dst)}" "{os.path.abspath(fp)}"', os.getcwd(), timeout=3600)
         res = glob.glob(os.path.join(dst,'*.mmd'))
-        if len(res) == 0:
+        if not res:
             self.threadLock.release()
             raise RuntimeError("Nougat解析论文失败。")
         self.threadLock.release()

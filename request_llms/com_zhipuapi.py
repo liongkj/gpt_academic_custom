@@ -28,14 +28,14 @@ class ZhipuRequestInstance():
             if event.event == "add":
                 self.result_buf += event.data
                 yield self.result_buf
-            elif event.event == "error" or event.event == "interrupted":
-                raise RuntimeError("Unknown error:" + event.data)
+            elif event.event in ["error", "interrupted"]:
+                raise RuntimeError(f"Unknown error:{event.data}")
             elif event.event == "finish":
                 yield self.result_buf
                 break
             else:
-                raise RuntimeError("Unknown error:" + str(event))
-            
+                raise RuntimeError(f"Unknown error:{str(event)}")
+
         logging.info(f'[raw_input] {inputs}')
         logging.info(f'[response] {self.result_buf}')
         return self.result_buf
@@ -45,23 +45,16 @@ def generate_message_payload(inputs, llm_kwargs, history, system_prompt):
     messages = [{"role": "user", "content": system_prompt}, {"role": "assistant", "content": "Certainly!"}]
     if conversation_cnt:
         for index in range(0, 2*conversation_cnt, 2):
-            what_i_have_asked = {}
-            what_i_have_asked["role"] = "user"
-            what_i_have_asked["content"] = history[index]
-            what_gpt_answer = {}
-            what_gpt_answer["role"] = "assistant"
-            what_gpt_answer["content"] = history[index+1]
+            what_i_have_asked = {"role": "user", "content": history[index]}
+            what_gpt_answer = {"role": "assistant", "content": history[index+1]}
             if what_i_have_asked["content"] != "":
                 if what_gpt_answer["content"] == "":
                     continue
                 if what_gpt_answer["content"] == timeout_bot_msg:
                     continue
-                messages.append(what_i_have_asked)
-                messages.append(what_gpt_answer)
+                messages.extend((what_i_have_asked, what_gpt_answer))
             else:
                 messages[-1]['content'] = what_gpt_answer['content']
-    what_i_ask_now = {}
-    what_i_ask_now["role"] = "user"
-    what_i_ask_now["content"] = inputs
+    what_i_ask_now = {"role": "user", "content": inputs}
     messages.append(what_i_ask_now)
     return messages

@@ -20,9 +20,7 @@ def string_to_options(arguments):
     parser.add_argument("--prompt_prefix", type=str, help="Prompt prefix", default='')
     parser.add_argument("--system_prompt", type=str, help="System prompt", default='')
     parser.add_argument("--batch", type=int, help="System prompt", default=50)
-    # Parse the arguments
-    args = parser.parse_args(shlex.split(arguments))
-    return args
+    return parser.parse_args(shlex.split(arguments))
 
 
 #################################################################################
@@ -81,10 +79,11 @@ class GetGLMFTHandle(Process):
                     print(f"Loading prefix_encoder weight from {CHATGLM_PTUNING_CHECKPOINT}")
                     model = AutoModel.from_pretrained(model_args['model_name_or_path'], config=config, trust_remote_code=True)
                     prefix_state_dict = torch.load(os.path.join(CHATGLM_PTUNING_CHECKPOINT, "pytorch_model.bin"))
-                    new_prefix_state_dict = {}
-                    for k, v in prefix_state_dict.items():
-                        if k.startswith("transformer.prefix_encoder."):
-                            new_prefix_state_dict[k[len("transformer.prefix_encoder."):]] = v
+                    new_prefix_state_dict = {
+                        k[len("transformer.prefix_encoder.") :]: v
+                        for k, v in prefix_state_dict.items()
+                        if k.startswith("transformer.prefix_encoder.")
+                    }
                     model.transformer.prefix_encoder.load_state_dict(new_prefix_state_dict)
 
                     if model_args['quantization_bit'] is not None and model_args['quantization_bit'] != 0:
@@ -96,9 +95,7 @@ class GetGLMFTHandle(Process):
                         model.transformer.prefix_encoder.float()
                     self.chatglmft_model = model.eval()
 
-                    break
-                else:
-                    break
+                break
             except Exception as e:
                 retry += 1
                 if retry > 3: 
@@ -152,11 +149,10 @@ def predict_no_ui_long_connection(inputs, llm_kwargs, history=[], sys_prompt="",
             raise RuntimeError(error)
 
     # chatglmft 没有 sys_prompt 接口，因此把prompt加入 history
-    history_feedin = []
-    history_feedin.append(["What can I do?", sys_prompt])
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]] )
-
+    history_feedin = [["What can I do?", sys_prompt]]
+    history_feedin.extend(
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    )
     watch_dog_patience = 5 # 看门狗 (watchdog) 的耐心, 设置5秒即可
     response = ""
     for response in glmft_handle.stream_chat(query=inputs, history=history_feedin, max_length=llm_kwargs['max_length'], top_p=llm_kwargs['top_p'], temperature=llm_kwargs['temperature']):
@@ -189,11 +185,10 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         inputs, history = handle_core_functionality(additional_fn, inputs, history, chatbot)
 
     # 处理历史信息
-    history_feedin = []
-    history_feedin.append(["What can I do?", system_prompt] )
-    for i in range(len(history)//2):
-        history_feedin.append([history[2*i], history[2*i+1]] )
-
+    history_feedin = [["What can I do?", system_prompt]]
+    history_feedin.extend(
+        [history[2 * i], history[2 * i + 1]] for i in range(len(history) // 2)
+    )
     # 开始接收chatglmft的回复
     response = "[Local Message] 等待ChatGLMFT响应中 ..."
     for response in glmft_handle.stream_chat(query=inputs, history=history_feedin, max_length=llm_kwargs['max_length'], top_p=llm_kwargs['top_p'], temperature=llm_kwargs['temperature']):

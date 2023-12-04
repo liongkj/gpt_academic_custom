@@ -25,7 +25,8 @@ def gen_image(llm_kwargs, prompt, resolution="1024x1024", model="dall-e-2", qual
         'model': model,
         'response_format': 'url'
     }
-    if quality is not None: data.update({'quality': quality})
+    if quality is not None:
+        data['quality'] = quality
     response = requests.post(url, headers=headers, json=data, proxies=proxies)
     print(response.content)
     try:
@@ -58,10 +59,12 @@ def edit_image(llm_kwargs, prompt, image_path, resolution="1024x1024", model="da
     headers = {
         'Authorization': f"Bearer {api_key}",
     }
-    make_transparent(image_path, image_path+'.tsp.png')
-    make_square_image(image_path+'.tsp.png', image_path+'.tspsq.png')
-    resize_image(image_path+'.tspsq.png', image_path+'.ready.png', max_size=1024)
-    image_path = image_path+'.ready.png'
+    make_transparent(image_path, f'{image_path}.tsp.png')
+    make_square_image(f'{image_path}.tsp.png', f'{image_path}.tspsq.png')
+    resize_image(
+        f'{image_path}.tspsq.png', f'{image_path}.ready.png', max_size=1024
+    )
+    image_path = f'{image_path}.ready.png'
     with open(image_path, 'rb') as f:
         file_content = f.read()
         files = {
@@ -144,7 +147,7 @@ class ImageEditState(GptAcademicState):
         if len(x) == 0:             return False, None
         if not os.path.exists(x):   return False, None
         if x.endswith('.png'):      return True, x
-        file_manifest = [f for f in glob.glob(f'{x}/**/*.png', recursive=True)]
+        file_manifest = list(glob.glob(f'{x}/**/*.png', recursive=True))
         confirm = (len(file_manifest) >= 1 and file_manifest[0].endswith('.png') and os.path.exists(file_manifest[0]))
         file = None if not confirm else file_manifest[0]
         return confirm, file
@@ -184,13 +187,12 @@ class ImageEditState(GptAcademicState):
         return self
 
     def next_req(self):
-        for r in self.req:
-            if r['value'] is None:
-                return r['description']
-        return "已经收集到所有信息"
+        return next(
+            (r['description'] for r in self.req if r['value'] is None), "已经收集到所有信息"
+        )
 
     def already_obtained_all_materials(self):
-        return all([x['value'] is not None for x in self.req])
+        return all(x['value'] is not None for x in self.req)
 
 @CatchException
 def 图片修改_DALLE2(prompt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):

@@ -48,7 +48,7 @@ class ChatBotWithCookies(list):
             self.append(t)
 
     def get_list(self):
-        return [t for t in self]
+        return list(self)
 
     def get_cookies(self):
         return self._cookies
@@ -87,10 +87,10 @@ def ArgsGeneralWrapper(f):
         }
         chatbot_with_cookie = ChatBotWithCookies(cookies)
         chatbot_with_cookie.write_list(chatbot)
-        
+
         if cookies.get('lock_plugin', None) is None:
             # 正常状态
-            if len(args) == 0:  # 插件通道
+            if not args:  # 插件通道
                 yield from f(txt_passon, llm_kwargs, plugin_kwargs, chatbot_with_cookie, history, system_prompt, request)
             else:               # 对话通道，或者基础功能通道
                 yield from f(txt_passon, llm_kwargs, plugin_kwargs, chatbot_with_cookie, history, system_prompt, *args)
@@ -102,9 +102,14 @@ def ArgsGeneralWrapper(f):
             # 判断一下用户是否错误地通过对话通道进入，如果是，则进行提醒
             final_cookies = chatbot_with_cookie.get_cookies()
             # len(args) != 0 代表“提交”键对话通道，或者基础功能通道
-            if len(args) != 0 and 'files_to_promote' in final_cookies and len(final_cookies['files_to_promote']) > 0:
+            if (
+                args
+                and 'files_to_promote' in final_cookies
+                and len(final_cookies['files_to_promote']) > 0
+            ):
                 chatbot_with_cookie.append(["检测到**滞留的缓存文档**，请及时处理。", "请及时点击“**保存当前对话**”获取所有滞留文档。"])
                 yield from update_ui(chatbot_with_cookie, final_cookies['history'], msg="检测到被滞留的缓存文档")
+
     return decorated
 
 
@@ -251,8 +256,7 @@ def write_history_to_file(history, file_basename=None, file_fullname=None, auto_
                 # remove everything that cannot be handled by utf8
                 f.write(content.encode('utf-8', 'ignore').decode())
             f.write('\n\n')
-    res = os.path.abspath(file_fullname)
-    return res
+    return os.path.abspath(file_fullname)
 
 
 def regular_txt_to_markdown(text):
@@ -283,20 +287,15 @@ def text_divide_paragraph(text):
     suf = '</div>'
     if text.startswith(pre) and text.endswith(suf):
         return text
-    
-    if '```' in text:
+
+    if '```' in text or '</div>' in text:
         # careful input
         return text
-    elif '</div>' in text:
-        # careful input
-        return text
-    else:
-        # whatever input
-        lines = text.split("\n")
-        for i, line in enumerate(lines):
-            lines[i] = lines[i].replace(" ", "&nbsp;")
-        text = "</br>".join(lines)
-        return pre + text + suf
+    # whatever input
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        lines[i] = lines[i].replace(" ", "&nbsp;")
+    return pre + "</br>".join(lines) + suf
 
 
 @lru_cache(maxsize=128) # 使用 lru缓存 加快转换速度
@@ -309,7 +308,7 @@ def markdown_convertion(txt):
     if txt.startswith(pre) and txt.endswith(suf):
         # print('警告，输入了已经经过转化的字符串，二次转化可能出问题')
         return txt # 已经被转化过，不需要再次转化
-    
+
     markdown_extension_configs = {
         'mdx_math': {
             'enable_dollar_delimiter': True,
@@ -371,7 +370,7 @@ def markdown_convertion(txt):
         for pattern, property in mathpatterns.items():
             flags = re.ASCII|re.DOTALL if property['allow_multi_lines'] else re.ASCII
             matches.extend(re.findall(pattern, txt, flags))
-        if len(matches) == 0: return False
+        if not matches: return False
         contain_any_eq = False
         illegal_pattern = re.compile(r'[^\x00-\x7F]|echo')
         for match in matches:
@@ -437,11 +436,7 @@ def close_up_code_segment_during_stream(gpt_reply):
     # 排除了以上两个情况，我们
     segments = gpt_reply.split('```')
     n_mark = len(segments) - 1
-    if n_mark % 2 == 1:
-        # print('输出代码片段中！')
-        return gpt_reply+'\n```'
-    else:
-        return gpt_reply
+    return gpt_reply+'\n```' if n_mark % 2 == 1 else gpt_reply
 
 
 def format_io(self, y):
@@ -486,32 +481,29 @@ def extract_archive(file_path, dest_dir):
     if file_extension == '.zip':
         with zipfile.ZipFile(file_path, 'r') as zipobj:
             zipobj.extractall(path=dest_dir)
-            print("Successfully extracted zip archive to {}".format(dest_dir))
+            print(f"Successfully extracted zip archive to {dest_dir}")
 
     elif file_extension in ['.tar', '.gz', '.bz2']:
         with tarfile.open(file_path, 'r:*') as tarobj:
             tarobj.extractall(path=dest_dir)
-            print("Successfully extracted tar archive to {}".format(dest_dir))
+            print(f"Successfully extracted tar archive to {dest_dir}")
 
-    # 第三方库，需要预先pip install rarfile
-    # 此外，Windows上还需要安装winrar软件，配置其Path环境变量，如"C:\Program Files\WinRAR"才可以
     elif file_extension == '.rar':
         try:
             import rarfile
             with rarfile.RarFile(file_path) as rf:
                 rf.extractall(path=dest_dir)
-                print("Successfully extracted rar archive to {}".format(dest_dir))
+                print(f"Successfully extracted rar archive to {dest_dir}")
         except:
             print("Rar format requires additional dependencies to install")
             return '\n\n解压失败! 需要安装pip install rarfile来解压rar文件。建议：使用zip压缩格式。'
 
-    # 第三方库，需要预先pip install py7zr
     elif file_extension == '.7z':
         try:
             import py7zr
             with py7zr.SevenZipFile(file_path, mode='r') as f:
                 f.extractall(path=dest_dir)
-                print("Successfully extracted 7z archive to {}".format(dest_dir))
+                print(f"Successfully extracted 7z archive to {dest_dir}")
         except:
             print("7z format requires additional dependencies to install")
             return '\n\n解压失败! 需要安装pip install py7zr来解压7z文件'
@@ -549,20 +541,18 @@ def file_already_in_downloadzone(file, user_path):
     try:
         parent_path = os.path.abspath(user_path)
         child_path = os.path.abspath(file)
-        if os.path.samefile(os.path.commonpath([parent_path, child_path]), parent_path):
-            return True
-        else:
-            return False
+        return bool(
+            os.path.samefile(
+                os.path.commonpath([parent_path, child_path]), parent_path
+            )
+        )
     except:
         return False
 
 def promote_file_to_downloadzone(file, rename_file=None, chatbot=None):
     # 将文件复制一份到下载区
     import shutil
-    if chatbot is not None:
-        user_name = get_user(chatbot)
-    else:
-        user_name = default_user_name
+    user_name = get_user(chatbot) if chatbot is not None else default_user_name
     if not os.path.exists(file):
         raise FileNotFoundError(f'文件{file}不存在')
     user_path = get_log_folder(user_name, plugin_name=None)
@@ -645,10 +635,7 @@ def to_markdown_tabs(head: list, tabs: list, alignment=':---:', column=False):
     Returns:
         A string representation of the markdown table.
     """
-    if column:
-        transposed_tabs = list(map(list, zip(*tabs)))
-    else:
-        transposed_tabs = tabs
+    transposed_tabs = list(map(list, zip(*tabs))) if column else tabs
     # Find the maximum length among the columns
     max_len = max(len(column) for column in transposed_tabs)
 
@@ -675,7 +662,7 @@ def on_file_uploaded(request: gradio.Request, files, chatbot, txt, txt2, checkbo
     time_tag = gen_time_str()
     target_path_base = get_upload_folder(user_name, tag=time_tag)
     os.makedirs(target_path_base, exist_ok=True)
-    
+
     # 移除过时的旧文件从而节省空间&保护隐私
     outdate_time_seconds = 3600 # 一小时
     del_outdated_uploads(outdate_time_seconds, get_upload_folder(user_name))
@@ -686,7 +673,9 @@ def on_file_uploaded(request: gradio.Request, files, chatbot, txt, txt2, checkbo
         file_origin_name = os.path.basename(file.orig_name)
         this_file_path = pj(target_path_base, file_origin_name)
         shutil.move(file.name, this_file_path)
-        upload_msg += extract_archive(file_path=this_file_path, dest_dir=this_file_path+'.extract')
+        upload_msg += extract_archive(
+            file_path=this_file_path, dest_dir=f'{this_file_path}.extract'
+        )
 
     if "浮动输入区" in checkboxes: 
         txt, txt2 = "", target_path_base
@@ -694,13 +683,13 @@ def on_file_uploaded(request: gradio.Request, files, chatbot, txt, txt2, checkbo
         txt, txt2 = target_path_base, ""
 
     # 整理文件集合 输出消息
-    moved_files = [fp for fp in glob.glob(f'{target_path_base}/**/*', recursive=True)]
+    moved_files = list(glob.glob(f'{target_path_base}/**/*', recursive=True))
     moved_files_str = to_markdown_tabs(head=['文件'], tabs=[moved_files])
     chatbot.append(['我上传了文件，请查收', 
                     f'[Local Message] 收到以下文件: \n\n{moved_files_str}' +
                     f'\n\n调用路径参数已自动修正到: \n\n{txt}' +
                     f'\n\n现在您点击任意函数插件时，以上文件将被作为输入参数'+upload_msg])
-    
+
     # 记录近期文件
     cookies.update({
         'most_recent_uploaded': {
@@ -722,9 +711,10 @@ def on_report_generated(cookies, files, chatbot):
     #     report_files = find_recent_files(PATH_LOGGING)
     if len(report_files) == 0:
         return cookies, None, chatbot
-    # files.extend(report_files)
-    file_links = ''
-    for f in report_files: file_links += f'<br/><a href="file={os.path.abspath(f)}" target="_blank">{f}</a>'
+    file_links = ''.join(
+        f'<br/><a href="file={os.path.abspath(f)}" target="_blank">{f}</a>'
+        for f in report_files
+    )
     chatbot.append(['报告如何远程获取？', f'报告已经添加到右侧“文件上传区”（可能处于折叠状态），请查收。{file_links}'])
     return cookies, report_files, chatbot
 
@@ -734,7 +724,8 @@ def load_chat_cookies():
 
     # deal with azure openai key
     if is_any_api_key(AZURE_API_KEY):
-        if is_any_api_key(API_KEY): API_KEY = API_KEY + ',' + AZURE_API_KEY
+        if is_any_api_key(API_KEY):
+            API_KEY = f'{API_KEY},{AZURE_API_KEY}'
         else: API_KEY = AZURE_API_KEY
     if len(AZURE_CFG_ARRAY) > 0:
         for azure_model_name, azure_cfg_dict in AZURE_CFG_ARRAY.items():
@@ -742,18 +733,18 @@ def load_chat_cookies():
                 raise ValueError("AZURE_CFG_ARRAY中配置的模型必须以azure开头")
             AZURE_API_KEY_ = azure_cfg_dict["AZURE_API_KEY"]
             if is_any_api_key(AZURE_API_KEY_):
-                if is_any_api_key(API_KEY): API_KEY = API_KEY + ',' + AZURE_API_KEY_
+                if is_any_api_key(API_KEY):
+                    API_KEY = f'{API_KEY},{AZURE_API_KEY_}'
                 else: API_KEY = AZURE_API_KEY_
 
-    customize_fn_overwrite_ = {}
-    for k in range(NUM_CUSTOM_BASIC_BTN):
-        customize_fn_overwrite_.update({  
-            "自定义按钮" + str(k+1):{
-                "Title":    r"",
-                "Prefix":   r"请在自定义菜单中定义提示词前缀.",
-                "Suffix":   r"请在自定义菜单中定义提示词后缀",
-            }
-        })
+    customize_fn_overwrite_ = {
+        f"自定义按钮{str(k + 1)}": {
+            "Title": r"",
+            "Prefix": r"请在自定义菜单中定义提示词前缀.",
+            "Suffix": r"请在自定义菜单中定义提示词后缀",
+        }
+        for k in range(NUM_CUSTOM_BASIC_BTN)
+    }
     return {'api_key': API_KEY, 'llm_model': LLM_MODEL, 'customize_fn_overwrite': customize_fn_overwrite_}
 
 def is_openai_api_key(key):
@@ -773,13 +764,10 @@ def is_api2d_key(key):
     return bool(API_MATCH_API2D)
 
 def is_any_api_key(key):
-    if ',' in key:
-        keys = key.split(',')
-        for k in keys:
-            if is_any_api_key(k): return True
-        return False
-    else:
+    if ',' not in key:
         return is_openai_api_key(key) or is_api2d_key(key) or is_azure_api_key(key)
+    keys = key.split(',')
+    return any(is_any_api_key(k) for k in keys)
 
 def what_keys(keys):
     avail_key_list = {'OpenAI Key':0, "Azure Key":0, "API2D Key":0}
@@ -805,22 +793,15 @@ def select_api_key(keys, llm_model):
     key_list = keys.split(',')
 
     if llm_model.startswith('gpt-'):
-        for k in key_list:
-            if is_openai_api_key(k): avail_key_list.append(k)
-
+        avail_key_list.extend(k for k in key_list if is_openai_api_key(k))
     if llm_model.startswith('api2d-'):
-        for k in key_list:
-            if is_api2d_key(k): avail_key_list.append(k)
-
+        avail_key_list.extend(k for k in key_list if is_api2d_key(k))
     if llm_model.startswith('azure-'):
-        for k in key_list:
-            if is_azure_api_key(k): avail_key_list.append(k)
-
-    if len(avail_key_list) == 0:
+        avail_key_list.extend(k for k in key_list if is_azure_api_key(k))
+    if not avail_key_list:
         raise RuntimeError(f"您提供的api-key不满足要求，不包含任何可用于{llm_model}的api-key。您可能选择了错误的模型或请求源（右下角更换模型菜单中可切换openai,azure,claude,api2d等请求源）。")
 
-    api_key = random.choice(avail_key_list) # 随机负载均衡
-    return api_key
+    return random.choice(avail_key_list)
 
 def read_env_variable(arg, default_value):
     """
@@ -839,7 +820,7 @@ def read_env_variable(arg, default_value):
         set GPT_ACADEMIC_AUTHENTICATION=[("username", "password"), ("username2", "password2")]
     """
     from colorful import print亮红, print亮绿
-    arg_with_prefix = "GPT_ACADEMIC_" + arg 
+    arg_with_prefix = f"GPT_ACADEMIC_{arg}"
     if arg_with_prefix in os.environ: 
         env_arg = os.environ[arg_with_prefix]
     elif arg in os.environ: 
@@ -899,7 +880,9 @@ def read_single_conf_with_lru_cache(arg):
             time.sleep(5)
     if arg == 'API_KEY':
         print亮蓝(f"[API_KEY] 本项目现已支持OpenAI和Azure的api-key。也支持同时填写多个api-key，如API_KEY=\"openai-key1,openai-key2,azure-key3\"")
-        print亮蓝(f"[API_KEY] 您既可以在config.py中修改api-key(s)，也可以在问题输入区输入临时的api-key(s)，然后回车键提交后即可生效。")
+        print亮蓝(
+            "[API_KEY] 您既可以在config.py中修改api-key(s)，也可以在问题输入区输入临时的api-key(s)，然后回车键提交后即可生效。"
+        )
         if is_any_api_key(r):
             print亮绿(f"[API_KEY] 您的 API_KEY 是: {r[:15]}*** API_KEY 导入成功")
         else:
@@ -921,8 +904,7 @@ def get_conf(*args):
     for arg in args:
         r = read_single_conf_with_lru_cache(arg)
         res.append(r)
-    if len(res) == 1: return res[0]
-    return res
+    return res[0] if len(res) == 1 else res
 
 
 def clear_line_break(txt):
@@ -952,14 +934,14 @@ def run_gradio_in_subpath(demo, auth, port, custom_path):
     """
     把gradio的运行地址更改到指定的二次路径上
     """
-    def is_path_legal(path: str)->bool:
+    def is_path_legal(path: str) -> bool:
         '''
         check path for sub url
         path: path to check
         return value: do sub url wrap
         '''
         if path == "/": return True
-        if len(path) == 0:
+        if not path:
             print("ilegal custom path: {}\npath must not be empty\ndeploy on root url".format(path))
             return False
         if path[0] == '/':
@@ -1095,18 +1077,17 @@ def get_log_folder(user=default_user_name, plugin_name='shared'):
 def get_upload_folder(user=default_user_name, tag=None):
     PATH_PRIVATE_UPLOAD = get_conf('PATH_PRIVATE_UPLOAD')
     if user is None: user = default_user_name
-    if tag is None or len(tag)==0:
-        target_path_base = pj(PATH_PRIVATE_UPLOAD, user)
-    else:
-        target_path_base = pj(PATH_PRIVATE_UPLOAD, user, tag)
-    return target_path_base
+    return (
+        pj(PATH_PRIVATE_UPLOAD, user)
+        if tag is None or len(tag) == 0
+        else pj(PATH_PRIVATE_UPLOAD, user, tag)
+    )
 
 def is_the_upload_folder(string):
     PATH_PRIVATE_UPLOAD = get_conf('PATH_PRIVATE_UPLOAD')
     pattern = r'^PATH_PRIVATE_UPLOAD[\\/][A-Za-z0-9_-]+[\\/]\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}$'
     pattern = pattern.replace('PATH_PRIVATE_UPLOAD', PATH_PRIVATE_UPLOAD)
-    if re.match(pattern, string): return True
-    else: return False
+    return bool(re.match(pattern, string))
 
 def get_user(chatbotwithcookies):
     return chatbotwithcookies._cookies.get('user_name', default_user_name)
@@ -1186,8 +1167,7 @@ def set_conf(key, value):
     read_single_conf_with_lru_cache.cache_clear()
     get_conf.cache_clear()
     os.environ[key] = str(value)
-    altered = get_conf(key)
-    return altered
+    return get_conf(key)
 
 def set_multi_conf(dic):
     for k, v in dic.items(): set_conf(k, v)
@@ -1201,8 +1181,7 @@ def get_plugin_handle(plugin_name):
     assert '->' in plugin_name, \
         "Example of plugin_name: crazy_functions.批量Markdown翻译->Markdown翻译指定语言"
     module, fn_name = plugin_name.split('->')
-    f_hot_reload = getattr(importlib.import_module(module, fn_name), fn_name)
-    return f_hot_reload
+    return getattr(importlib.import_module(module, fn_name), fn_name)
 
 def get_chat_handle():
     """
@@ -1224,17 +1203,15 @@ def get_plugin_default_kwargs():
     }
     chatbot = ChatBotWithCookies(llm_kwargs)
 
-    # txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port
-    DEFAULT_FN_GROUPS_kwargs = {
+    return {
         "main_input": "./README.md",
         "llm_kwargs": llm_kwargs,
         "plugin_kwargs": {},
         "chatbot_with_cookie": chatbot,
         "history": [],
-        "system_prompt": "You are a good AI.", 
-        "web_port": None
+        "system_prompt": "You are a good AI.",
+        "web_port": None,
     }
-    return DEFAULT_FN_GROUPS_kwargs
 
 def get_chat_default_kwargs():
     """
@@ -1247,7 +1224,7 @@ def get_chat_default_kwargs():
         'max_length': None,
         'temperature':1.0,
     }
-    default_chat_kwargs = {
+    return {
         "inputs": "Hello there, are you ready?",
         "llm_kwargs": llm_kwargs,
         "history": [],
@@ -1256,13 +1233,11 @@ def get_chat_default_kwargs():
         "console_slience": False,
     }
 
-    return default_chat_kwargs
-
 
 def get_pictures_list(path):
-    file_manifest = [f for f in glob.glob(f'{path}/**/*.jpg', recursive=True)]
-    file_manifest += [f for f in glob.glob(f'{path}/**/*.jpeg', recursive=True)]
-    file_manifest += [f for f in glob.glob(f'{path}/**/*.png', recursive=True)]
+    file_manifest = list(glob.glob(f'{path}/**/*.jpg', recursive=True))
+    file_manifest += list(glob.glob(f'{path}/**/*.jpeg', recursive=True))
+    file_manifest += list(glob.glob(f'{path}/**/*.png', recursive=True))
     return file_manifest
 
 
@@ -1271,14 +1246,12 @@ def have_any_recent_upload_image_files(chatbot):
     if chatbot is None: return False, None    # chatbot is None
     most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
     if not most_recent_uploaded: return False, None   # most_recent_uploaded is None
-    if time.time() - most_recent_uploaded["time"] < _5min:
-        most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
-        path = most_recent_uploaded['path']
-        file_manifest = get_pictures_list(path)
-        if len(file_manifest) == 0: return False, None
-        return True, file_manifest # most_recent_uploaded is new
-    else:
+    if time.time() - most_recent_uploaded["time"] >= _5min:
         return False, None  # most_recent_uploaded is too old
+    most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
+    path = most_recent_uploaded['path']
+    file_manifest = get_pictures_list(path)
+    return (False, None) if len(file_manifest) == 0 else (True, file_manifest)
 
 
 # Function to encode the image

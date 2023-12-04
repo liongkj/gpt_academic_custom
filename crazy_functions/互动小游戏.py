@@ -68,7 +68,6 @@ class 小游戏_谁是卧底_玩家():
             history=history,
             sys_prompt=sys_prompt
         )
-        pass
 
     def vote(self, content=None):
         if content is None:
@@ -139,7 +138,10 @@ class 小游戏_谁是卧底(小游戏):
                     player.vote()
             self.who_is_out()
             if len([player for player in self.players if not player.is_out]) <= 2:
-                if sum([player for player in self.players if player.is_undercover]) == 1:
+                if (
+                    sum(player for player in self.players if player.is_undercover)
+                    == 1
+                ):
                     print('卧底获胜')
                 else:
                     print('平民获胜')

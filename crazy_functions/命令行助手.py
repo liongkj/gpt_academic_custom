@@ -18,7 +18,7 @@ def 命令行助手(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_pro
     history = []
 
     # 输入
-    i_say = "请写bash命令实现以下功能：" + txt
+    i_say = f"请写bash命令实现以下功能：{txt}"
     # 开始
     gpt_say = yield from request_gpt_model_in_new_thread_with_ui_alive(
         inputs=i_say, inputs_show_user=txt, 

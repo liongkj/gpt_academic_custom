@@ -95,7 +95,7 @@ def 读取知识库作答(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
     kai_id = plugin_kwargs.get("advanced_arg", 'default')
     resp, prompt = kai.answer_with_archive_by_id(txt, kai_id)
 
-    chatbot.append((txt, f'[知识库 {kai_id}] ' + prompt))
+    chatbot.append((txt, f'[知识库 {kai_id}] {prompt}'))
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 由于请求gpt需要一段时间，我们先及时地做一次界面更新
     gpt_say = yield from request_gpt_model_in_new_thread_with_ui_alive(
         inputs=prompt, inputs_show_user=txt, 

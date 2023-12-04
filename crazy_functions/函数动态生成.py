@@ -58,10 +58,10 @@ def get_code_block(reply):
 def gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history):
     # 输入
     prompt_compose = [
-        f'Your job:\n'
-        f'1. write a single Python function, which takes a path of a `{file_type}` file as the only argument and returns a `string` containing the result of analysis or the path of generated files. \n',
-        f"2. You should write this function to perform following task: " + txt + "\n",
-        f"3. Wrap the output python function with markdown codeblock."
+        f'Your job:\n1. write a single Python function, which takes a path of a `{file_type}` file as the only argument and returns a `string` containing the result of analysis or the path of generated files. \n',
+        f"2. You should write this function to perform following task: {txt}"
+        + "\n",
+        "3. Wrap the output python function with markdown codeblock.",
     ]
     i_say = "".join(prompt_compose)
     demo = []
@@ -80,16 +80,17 @@ def gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history):
         "If previous stage is successful, rewrite the function you have just written to satisfy following templete: \n",
         templete
     ]
-    i_say = "".join(prompt_compose); inputs_show_user = "If previous stage is successful, rewrite the function you have just written to satisfy executable templete. "
+    i_say = "".join(prompt_compose)
+    inputs_show_user = "If previous stage is successful, rewrite the function you have just written to satisfy executable templete. "
     gpt_say = yield from request_gpt_model_in_new_thread_with_ui_alive(
         inputs=i_say, inputs_show_user=inputs_show_user, 
         llm_kwargs=llm_kwargs, chatbot=chatbot, history=history, 
         sys_prompt= r"You are a programmer. You need to replace `...` with valid packages, do not give `...` in your answer!"
     )
     code_to_return = gpt_say
-    history.extend([i_say, gpt_say])
+    history.extend([i_say, code_to_return])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
-    
+
     # # 第三步
     # i_say = "Please list to packages to install to run the code above. Then show me how to use `try_install_deps` function to install them."
     # i_say += 'For instance. `try_install_deps(["opencv-python", "scipy", "numpy"])`'
@@ -108,7 +109,7 @@ def gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history):
     #     sys_prompt= r"You are a programmer."
     # )
     installation_advance = ""
-    
+
     return code_to_return, installation_advance, txt, file_type, llm_kwargs, chatbot, history
 
 
@@ -126,17 +127,17 @@ def for_immediate_show_off_when_possible(file_type, fp, chatbot):
 
 
 def have_any_recent_upload_files(chatbot):
-    _5min = 5 * 60
     if not chatbot: return False    # chatbot is None
-    most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
-    if not most_recent_uploaded: return False   # most_recent_uploaded is None
-    if time.time() - most_recent_uploaded["time"] < _5min: return True # most_recent_uploaded is new
-    else: return False  # most_recent_uploaded is too old
+    if most_recent_uploaded := chatbot._cookies.get(
+        "most_recent_uploaded", None
+    ):
+        return time.time() - most_recent_uploaded["time"] < 5 * 60
+    else:
+        return False   # most_recent_uploaded is None
 
 def get_recent_file_prompt_support(chatbot):
     most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
-    path = most_recent_uploaded['path']
-    return path
+    return most_recent_uploaded['path']
 
 @CatchException
 def 函数动态生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
@@ -173,11 +174,11 @@ def 函数动态生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_
         chatbot.append(["文件检索", "没有发现任何近期上传的文件。"])
         yield from update_ui_lastest_msg("没有发现任何近期上传的文件。", chatbot, history, 1)
         return  # 2. 如果没有文件
-    if len(file_list) == 0:
+    if not file_list:
         chatbot.append(["文件检索", "没有发现任何近期上传的文件。"])
         yield from update_ui_lastest_msg("没有发现任何近期上传的文件。", chatbot, history, 1)
         return  # 2. 如果没有文件
-    
+
     # 读取文件
     file_type = file_list[0].split('.')[-1]
 
@@ -185,7 +186,7 @@ def 函数动态生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_
     if is_the_upload_folder(txt):
         yield from update_ui_lastest_msg(f"请在输入框内填写需求, 然后再次点击该插件! 至于您的文件，不用担心, 文件路径 {txt} 已经被记忆. ", chatbot, history, 1)
         return
-    
+
     # 开始干正事
     MAX_TRY = 3
     for j in range(MAX_TRY):  # 最多重试5次
@@ -195,7 +196,7 @@ def 函数动态生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_
             code, installation_advance, txt, file_type, llm_kwargs, chatbot, history = \
                 yield from gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history)
             chatbot.append(["代码生成阶段结束", ""])
-            yield from update_ui_lastest_msg(f"正在验证上述代码的有效性 ...", chatbot, history, 1)
+            yield from update_ui_lastest_msg("正在验证上述代码的有效性 ...", chatbot, history, 1)
             # ⭐ 分离代码块
             code = get_code_block(code)
             # ⭐ 检查模块
@@ -216,17 +217,17 @@ def 函数动态生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_
 
     # ⭐ 到最后一步了，开始逐个文件进行处理
     for file_path in file_list:
-        if os.path.exists(file_path):
-            chatbot.append([f"正在处理文件: {file_path}", f"请稍等..."])
-            chatbot = for_immediate_show_off_when_possible(file_type, file_path, chatbot)
-            yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
-        else:
+        if not os.path.exists(file_path):
             continue
 
+        chatbot.append([f"正在处理文件: {file_path}", "请稍等..."])
+        chatbot = for_immediate_show_off_when_possible(file_type, file_path, chatbot)
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
         # ⭐⭐⭐ subprocess_worker ⭐⭐⭐
         p = multiprocessing.Process(target=subprocess_worker, args=(code, file_path, return_dict))
         # ⭐ 开始执行，时间限制TIME_LIMIT
-        p.start(); p.join(timeout=TIME_LIMIT)
+        p.start()
+        p.join(timeout=TIME_LIMIT)
         if p.is_alive(): p.terminate(); p.join()
         p.close()
         res = return_dict['result']
@@ -238,15 +239,15 @@ def 函数动态生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_
             # chatbot.append(["如果是缺乏依赖，请参考以下建议", installation_advance])
             yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
             return
-        
+
         # 顺利完成，收尾
         res = str(res)
         if os.path.exists(res):
-            chatbot.append(["执行成功了，结果是一个有效文件", "结果：" + res])
+            chatbot.append(["执行成功了，结果是一个有效文件", f"结果：{res}"])
             new_file_path = promote_file_to_downloadzone(res, chatbot=chatbot)
             chatbot = for_immediate_show_off_when_possible(file_type, new_file_path, chatbot)
-            yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
         else:
-            chatbot.append(["执行成功了，结果是一个字符串", "结果：" + res])
-            yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新   
+            chatbot.append(["执行成功了，结果是一个字符串", f"结果：{res}"])
+
+        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新   
 

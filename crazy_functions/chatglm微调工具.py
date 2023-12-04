@@ -26,10 +26,7 @@ def string_to_options(arguments):
 
 
 
-    # Parse the arguments
-    args = parser.parse_args(shlex.split(arguments))
-
-    return args
+    return parser.parse_args(shlex.split(arguments))
 
 @CatchException
 def 微调数据集生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
@@ -54,27 +51,31 @@ def 微调数据集生成(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
 
     dat = []
     with open(txt, 'r', encoding='utf8') as f:
-        for line in f.readlines():
+        for line in f:
             json_dat = json.loads(line)
             dat.append(json_dat["content"])
 
     llm_kwargs['llm_model'] = arguments.llm_to_learn
     for batch in fetch_items(dat, arguments.batch):
         res = yield from request_gpt_model_multi_threads_with_very_awesome_ui_and_high_efficiency(
-            inputs_array=[f"{arguments.prompt_prefix}\n\n{b}" for b in (batch)],
-            inputs_show_user_array=[f"Show Nothing" for _ in (batch)],
+            inputs_array=[
+                f"{arguments.prompt_prefix}\n\n{b}" for b in (batch)
+            ],
+            inputs_show_user_array=["Show Nothing" for _ in (batch)],
             llm_kwargs=llm_kwargs,
             chatbot=chatbot,
             history_array=[[] for _ in (batch)],
             sys_prompt_array=[arguments.system_prompt for _ in (batch)],
-            max_workers=10  # OpenAI所允许的最大并行过载
+            max_workers=10,
         )
-    
-        with open(txt+'.generated.json', 'a+', encoding='utf8') as f:
+
+        with open(f'{txt}.generated.json', 'a+', encoding='utf8') as f:
             for b, r in zip(batch, res[1::2]):
                 f.write(json.dumps({"content":b, "summary":r}, ensure_ascii=False)+'\n')
 
-    promote_file_to_downloadzone(txt+'.generated.json', rename_file='generated.json', chatbot=chatbot)
+    promote_file_to_downloadzone(
+        f'{txt}.generated.json', rename_file='generated.json', chatbot=chatbot
+    )
     return
 
 

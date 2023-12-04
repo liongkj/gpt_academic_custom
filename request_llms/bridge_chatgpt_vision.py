@@ -54,9 +54,11 @@ def decode_chunk(chunk):
     try: 
         chunkjson = json.loads(chunk_decoded[6:])
         has_choices = 'choices' in chunkjson
-        if has_choices: choice_valid = (len(chunkjson['choices']) > 0)
-        if has_choices and choice_valid: has_content = "content" in chunkjson['choices'][0]["delta"]
-        if has_choices and choice_valid: has_role = "role" in chunkjson['choices'][0]["delta"]
+        if has_choices:
+            choice_valid = (len(chunkjson['choices']) > 0)
+            if choice_valid:
+                has_content = "content" in chunkjson['choices'][0]["delta"]
+                has_role = "role" in chunkjson['choices'][0]["delta"]
     except: 
         pass
     return chunk_decoded, chunkjson, has_choices, choice_valid, has_content, has_role
@@ -105,14 +107,18 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
     logging.info(f'[raw_input] {raw_input}')
     def make_media_input(inputs, image_paths): 
         for image_path in image_paths:
-            inputs = inputs + f'<br/><br/><div align="center"><img src="file={os.path.abspath(image_path)}"></div>'
+            inputs = f'{inputs}<br/><br/><div align="center"><img src="file={os.path.abspath(image_path)}"></div>'
         return inputs
+
     chatbot.append((make_media_input(inputs, image_paths), ""))
     yield from update_ui(chatbot=chatbot, history=history, msg="等待响应") # 刷新界面
 
     # check mis-behavior
     if is_the_upload_folder(user_input):
-        chatbot[-1] = (inputs, f"[Local Message] 检测到操作错误！当您上传文档之后，需点击“**函数插件区**”按钮进行处理，请勿点击“提交”按钮或者“基础功能区”按钮。")
+        chatbot[-1] = (
+            inputs,
+            "[Local Message] 检测到操作错误！当您上传文档之后，需点击“**函数插件区**”按钮进行处理，请勿点击“提交”按钮或者“基础功能区”按钮。",
+        )
         yield from update_ui(chatbot=chatbot, history=history, msg="正常") # 刷新界面
         time.sleep(2)
 
@@ -122,7 +128,7 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
         chatbot[-1] = (inputs, f"您提供的api-key不满足要求，不包含任何可用于{llm_kwargs['llm_model']}的api-key。您可能选择了错误的模型或请求源。")
         yield from update_ui(chatbot=chatbot, history=history, msg="api-key不满足要求") # 刷新界面
         return
-        
+
     # 检查endpoint是否合法
     try:
         from .bridge_all import model_info
@@ -146,11 +152,11 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
             retry += 1
             chatbot[-1] = ((chatbot[-1][0], timeout_bot_msg))
             retry_msg = f"，正在重试 ({retry}/{MAX_RETRY}) ……" if MAX_RETRY > 0 else ""
-            yield from update_ui(chatbot=chatbot, history=history, msg="请求超时"+retry_msg) # 刷新界面
+            yield from update_ui(chatbot=chatbot, history=history, msg=f"请求超时{retry_msg}")
             if retry > MAX_RETRY: raise TimeoutError
 
     gpt_replying_buffer = ""
-    
+
     is_head_of_the_stream = True
     if stream:
         stream_response =  response.iter_lines()
@@ -167,16 +173,20 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
                     break
                 # 其他情况，直接返回报错
                 chatbot, history = handle_error(inputs, llm_kwargs, chatbot, history, chunk_decoded, error_msg, api_key)
-                yield from update_ui(chatbot=chatbot, history=history, msg="非OpenAI官方接口返回了错误:" + chunk.decode()) # 刷新界面
+                yield from update_ui(
+                    chatbot=chatbot,
+                    history=history,
+                    msg=f"非OpenAI官方接口返回了错误:{chunk.decode()}",
+                )
                 return
-            
+
             # 提前读取一些信息 （用于判断异常）
             chunk_decoded, chunkjson, has_choices, choice_valid, has_content, has_role = decode_chunk(chunk)
 
             if is_head_of_the_stream and (r'"object":"error"' not in chunk_decoded) and (r"content" not in chunk_decoded):
                 # 数据流的第一帧不携带content
                 is_head_of_the_stream = False; continue
-            
+
             if chunk:
                 try:
                     if has_choices and not choice_valid:
@@ -185,7 +195,7 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
                     # 前者是API2D的结束条件，后者是OPENAI的结束条件
                     if ('data: [DONE]' in chunk_decoded) or (len(chunkjson['choices'][0]["delta"]) == 0):
                         # 判定为数据流的结束，gpt_replying_buffer也写完了
-                        lastmsg = chatbot[-1][-1] + f"\n\n\n\n「{llm_kwargs['llm_model']}调用结束，该模型不具备上下文对话能力，如需追问，请及时切换模型。」"
+                        lastmsg = f"{chatbot[-1][-1]}\n\n\n\n「{llm_kwargs['llm_model']}调用结束，该模型不具备上下文对话能力，如需追问，请及时切换模型。」"
                         yield from update_ui_lastest_msg(lastmsg, chatbot, history, delay=1)
                         logging.info(f'[response] {gpt_replying_buffer}')
                         break
@@ -211,7 +221,11 @@ def predict(inputs, llm_kwargs, plugin_kwargs, chatbot, history=[], system_promp
                     chunk_decoded = chunk.decode()
                     error_msg = chunk_decoded
                     chatbot, history = handle_error(inputs, llm_kwargs, chatbot, history, chunk_decoded, error_msg, api_key)
-                    yield from update_ui(chatbot=chatbot, history=history, msg="Json异常" + error_msg) # 刷新界面
+                    yield from update_ui(
+                        chatbot=chatbot,
+                        history=history,
+                        msg=f"Json异常{error_msg}",
+                    )
                     print(error_msg)
                     return
 
@@ -226,15 +240,35 @@ def handle_error(inputs, llm_kwargs, chatbot, history, chunk_decoded, error_msg,
     elif "does not exist" in error_msg:
         chatbot[-1] = (chatbot[-1][0], f"[Local Message] Model {llm_kwargs['llm_model']} does not exist. 模型不存在, 或者您没有获得体验资格.")
     elif "Incorrect API key" in error_msg:
-        chatbot[-1] = (chatbot[-1][0], "[Local Message] Incorrect API key. OpenAI以提供了不正确的API_KEY为由, 拒绝服务. " + openai_website); report_invalid_key(api_key)
+        chatbot[-1] = (
+            chatbot[-1][0],
+            f"[Local Message] Incorrect API key. OpenAI以提供了不正确的API_KEY为由, 拒绝服务. {openai_website}",
+        )
+        report_invalid_key(api_key)
     elif "exceeded your current quota" in error_msg:
-        chatbot[-1] = (chatbot[-1][0], "[Local Message] You exceeded your current quota. OpenAI以账户额度不足为由, 拒绝服务." + openai_website); report_invalid_key(api_key)
+        chatbot[-1] = (
+            chatbot[-1][0],
+            f"[Local Message] You exceeded your current quota. OpenAI以账户额度不足为由, 拒绝服务.{openai_website}",
+        )
+        report_invalid_key(api_key)
     elif "account is not active" in error_msg:
-        chatbot[-1] = (chatbot[-1][0], "[Local Message] Your account is not active. OpenAI以账户失效为由, 拒绝服务." + openai_website); report_invalid_key(api_key)
+        chatbot[-1] = (
+            chatbot[-1][0],
+            f"[Local Message] Your account is not active. OpenAI以账户失效为由, 拒绝服务.{openai_website}",
+        )
+        report_invalid_key(api_key)
     elif "associated with a deactivated account" in error_msg:
-        chatbot[-1] = (chatbot[-1][0], "[Local Message] You are associated with a deactivated account. OpenAI以账户失效为由, 拒绝服务." + openai_website); report_invalid_key(api_key)
+        chatbot[-1] = (
+            chatbot[-1][0],
+            f"[Local Message] You are associated with a deactivated account. OpenAI以账户失效为由, 拒绝服务.{openai_website}",
+        )
+        report_invalid_key(api_key)
     elif "API key has been deactivated" in error_msg:
-        chatbot[-1] = (chatbot[-1][0], "[Local Message] API key has been deactivated. OpenAI以账户失效为由, 拒绝服务." + openai_website); report_invalid_key(api_key)
+        chatbot[-1] = (
+            chatbot[-1][0],
+            f"[Local Message] API key has been deactivated. OpenAI以账户失效为由, 拒绝服务.{openai_website}",
+        )
+        report_invalid_key(api_key)
     elif "bad forward key" in error_msg:
         chatbot[-1] = (chatbot[-1][0], "[Local Message] Bad forward key. API2D账户额度不足.")
     elif "Not enough point" in error_msg:
@@ -259,26 +293,19 @@ def generate_payload(inputs, llm_kwargs, history, system_prompt, image_paths):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}"
     }
-    if API_ORG.startswith('org-'): headers.update({"OpenAI-Organization": API_ORG})
+    if API_ORG.startswith('org-'):
+        headers["OpenAI-Organization"] = API_ORG
     if llm_kwargs['llm_model'].startswith('azure-'): 
-        headers.update({"api-key": api_key})
+        headers["api-key"] = api_key
         if llm_kwargs['llm_model'] in AZURE_CFG_ARRAY.keys():
             azure_api_key_unshared = AZURE_CFG_ARRAY[llm_kwargs['llm_model']]["AZURE_API_KEY"]
-            headers.update({"api-key": azure_api_key_unshared})
+            headers["api-key"] = azure_api_key_unshared
 
-    base64_images = []
-    for image_path in image_paths:
-        base64_images.append(encode_image(image_path))
-
-    messages = []
-    what_i_ask_now = {}
-    what_i_ask_now["role"] = "user"
-    what_i_ask_now["content"] = []
-    what_i_ask_now["content"].append({
-        "type": "text",
-        "text": inputs
-    })
-
+    base64_images = [encode_image(image_path) for image_path in image_paths]
+    what_i_ask_now = {
+        "role": "user",
+        "content": [{"type": "text", "text": inputs}],
+    }
     for image_path, base64_image in zip(image_paths, base64_images):
         what_i_ask_now["content"].append({
             "type": "image_url",
@@ -287,7 +314,7 @@ def generate_payload(inputs, llm_kwargs, history, system_prompt, image_paths):
             }
         })
 
-    messages.append(what_i_ask_now)
+    messages = [what_i_ask_now]
     model = llm_kwargs['llm_model']
     if llm_kwargs['llm_model'].startswith('api2d-'):
         model = llm_kwargs['llm_model'][len('api2d-'):]

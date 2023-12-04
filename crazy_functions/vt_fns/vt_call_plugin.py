@@ -24,26 +24,27 @@ def wrap_code(txt):
     return f"\n```\n{txt}\n```\n"
 
 def have_any_recent_upload_files(chatbot):
-    _5min = 5 * 60
     if not chatbot: return False    # chatbot is None
-    most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
-    if not most_recent_uploaded: return False   # most_recent_uploaded is None
-    if time.time() - most_recent_uploaded["time"] < _5min: return True # most_recent_uploaded is new
-    else: return False  # most_recent_uploaded is too old
+    if most_recent_uploaded := chatbot._cookies.get(
+        "most_recent_uploaded", None
+    ):
+        return time.time() - most_recent_uploaded["time"] < 5 * 60
+    else:
+        return False   # most_recent_uploaded is None
 
 def get_recent_file_prompt_support(chatbot):
     most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
     path = most_recent_uploaded['path']
     prompt =   "\nAdditional Information:\n"
-    prompt =   "In case that this plugin requires a path or a file as argument," 
-    prompt += f"it is important for you to know that the user has recently uploaded a file, located at: `{path}`" 
-    prompt += f"Only use it when necessary, otherwise, you can ignore this file." 
+    prompt =   "In case that this plugin requires a path or a file as argument,"
+    prompt += f"it is important for you to know that the user has recently uploaded a file, located at: `{path}`"
+    prompt += "Only use it when necessary, otherwise, you can ignore this file."
     return prompt
 
 def get_inputs_show_user(inputs, plugin_arr_enum_prompt):
     # remove plugin_arr_enum_prompt from inputs string
     inputs_show_user = inputs.replace(plugin_arr_enum_prompt, "")
-    inputs_show_user += plugin_arr_enum_prompt[:200] + '...'
+    inputs_show_user += f'{plugin_arr_enum_prompt[:200]}...'
     inputs_show_user += '\n...\n'
     inputs_show_user += '...\n'
     inputs_show_user += '...}'
@@ -57,8 +58,10 @@ def execute_plugin(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prom
     # ⭐ ⭐ ⭐ 选择插件
     yield from update_ui_lastest_msg(lastmsg=f"正在执行任务: {txt}\n\n查找可用插件中...", chatbot=chatbot, history=history, delay=0)
     gpt_json_io = GptJsonIO(Plugin)
-    gpt_json_io.format_instructions = "The format of your output should be a json that can be parsed by json.loads.\n"
-    gpt_json_io.format_instructions += """Output example: {"plugin_selection":"F_1234", "reason_of_selection":"F_1234 plugin satisfy user requirement most"}\n"""
+    gpt_json_io.format_instructions = (
+        "The format of your output should be a json that can be parsed by json.loads.\n"
+        + """Output example: {"plugin_selection":"F_1234", "reason_of_selection":"F_1234 plugin satisfy user requirement most"}\n"""
+    )
     gpt_json_io.format_instructions += "The plugins you are authorized to use are listed below:\n"
     gpt_json_io.format_instructions += plugin_arr_enum_prompt
     inputs = "Choose the correct plugin according to user requirements, the user requirement is: \n\n" + \
@@ -78,11 +81,11 @@ def execute_plugin(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prom
         return
     if plugin_sel.plugin_selection not in plugin_arr_dict_parse:
         msg = f"抱歉, 找不到合适插件执行该任务, 或者{llm_kwargs['llm_model']}无法理解您的需求。"
-        msg += f"语言模型{llm_kwargs['llm_model']}选择了不存在的插件：\n" + wrap_code(gpt_reply)
+        msg += f"语言模型{llm_kwargs['llm_model']}选择了不存在的插件：\n{wrap_code(gpt_reply)}"
         msg += "\n但您可以尝试再试一次\n"
         yield from update_ui_lastest_msg(lastmsg=msg, chatbot=chatbot, history=history, delay=2)
         return
-    
+
     # ⭐ ⭐ ⭐ 确认插件参数
     if not have_any_recent_upload_files(chatbot):
         appendix_info = ""
@@ -99,7 +102,7 @@ def execute_plugin(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prom
     inputs = f"A plugin named {plugin_sel.plugin_selection} is selected, " + \
              "you should extract plugin_arg from the user requirement, the user requirement is: \n\n" + \
              ">> " + (txt + appendix_info).rstrip('\n').replace('\n','\n>> ') + '\n\n' + \
-             gpt_json_io.format_instructions 
+             gpt_json_io.format_instructions
     run_gpt_fn = lambda inputs, sys_prompt: predict_no_ui_long_connection(
         inputs=inputs, llm_kwargs=llm_kwargs, history=[], sys_prompt=sys_prompt, observe_window=[])
     plugin_sel = gpt_json_io.generate_output_auto_repair(run_gpt_fn(inputs, ""), run_gpt_fn)

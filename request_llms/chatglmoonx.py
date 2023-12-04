@@ -116,10 +116,10 @@ class ChatGLMModel():
             inputs.update(past_key_values)
 
             logits, *past_key_values = self.session.run(output_names, inputs)
-            past_key_values = { k: v for k, v in zip(past_names, past_key_values) }
+            past_key_values = dict(zip(past_names, past_key_values))
 
             next_token = self.sample_next_token(logits[0, -1], top_k=top_k, top_p=top_p, temperature=temperature)
-            
+
             output_tokens += [next_token]
 
             if next_token == self.eop_token_id or len(output_tokens) > max_generated_tokens:
@@ -199,7 +199,7 @@ class ChatGLMTokenizer:
         """
         text = self.preprocess(text, linebreak, whitespaces)
         if not add_dummy_prefix:
-            text = "<n>" + text
+            text = f"<n>{text}"
 
         tokens = self.text_tokenizer.encode(text)
         prefix_mask = [1] * len(tokens)

@@ -41,8 +41,7 @@ def get_access_token():
 
     url = "https://aip.baidubce.com/oauth/2.0/token"
     params = {"grant_type": "client_credentials", "client_id": BAIDU_CLOUD_API_KEY, "client_secret": BAIDU_CLOUD_SECRET_KEY}
-    access_token_cache = str(requests.post(url, params=params).json().get("access_token"))
-    return access_token_cache
+    return str(requests.post(url, params=params).json().get("access_token"))
     # else:
     #     return access_token_cache
 
@@ -50,26 +49,29 @@ def get_access_token():
 def generate_message_payload(inputs, llm_kwargs, history, system_prompt):
     conversation_cnt = len(history) // 2
     if system_prompt == "": system_prompt = "Hello"
-    messages = [{"role": "user", "content": system_prompt}]
-    messages.append({"role": "assistant", "content": 'Certainly!'})
+    messages = [
+        {"role": "user", "content": system_prompt},
+        {"role": "assistant", "content": 'Certainly!'},
+    ]
     if conversation_cnt:
         for index in range(0, 2*conversation_cnt, 2):
-            what_i_have_asked = {}
-            what_i_have_asked["role"] = "user"
-            what_i_have_asked["content"] = history[index] if history[index]!="" else "Hello"
-            what_gpt_answer = {}
-            what_gpt_answer["role"] = "assistant"
-            what_gpt_answer["content"] = history[index+1] if history[index]!="" else "Hello"
+            what_i_have_asked = {
+                "role": "user",
+                "content": history[index] if history[index] != "" else "Hello",
+            }
+            what_gpt_answer = {
+                "role": "assistant",
+                "content": history[index + 1]
+                if history[index] != ""
+                else "Hello",
+            }
             if what_i_have_asked["content"] != "":
                 if what_gpt_answer["content"] == "": continue
                 if what_gpt_answer["content"] == timeout_bot_msg: continue
-                messages.append(what_i_have_asked)
-                messages.append(what_gpt_answer)
+                messages.extend((what_i_have_asked, what_gpt_answer))
             else:
                 messages[-1]['content'] = what_gpt_answer['content']
-    what_i_ask_now = {}
-    what_i_ask_now["role"] = "user"
-    what_i_ask_now["content"] = inputs
+    what_i_ask_now = {"role": "user", "content": inputs}
     messages.append(what_i_ask_now)
     return messages
 
@@ -90,7 +92,7 @@ def generate_from_baidu_qianfan(inputs, llm_kwargs, history, system_prompt):
 
     url = url_lib[BAIDU_CLOUD_QIANFAN_MODEL]
 
-    url += "?access_token=" + get_access_token()
+    url += f"?access_token={get_access_token()}"
 
 
     payload = json.dumps({

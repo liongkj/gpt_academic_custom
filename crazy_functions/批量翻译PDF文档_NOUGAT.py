@@ -21,10 +21,10 @@ def markdown_to_dict(article_content):
         if line.startswith('#'):
             if cur_t!="":
                 if cur_t not in results:
-                    results.update({cur_t:cur_c.lstrip('\n')})
+                    results[cur_t] = cur_c.lstrip('\n')
                 else:
                     # 处理重名的章节
-                    results.update({cur_t + " " + gen_time_str():cur_c.lstrip('\n')})
+                    results[f"{cur_t} {gen_time_str()}"] = cur_c.lstrip('\n')
             cur_t = line.rstrip('\n')
             cur_c = ""
         else:
@@ -37,12 +37,15 @@ def markdown_to_dict(article_content):
         if k.startswith('###### Abstract'):
             results_final['abstract'] = results.pop(k).lstrip('\n')
 
-    results_final_sections = []
-    for k,v in results.items():
-        results_final_sections.append({
-            'heading':k.lstrip("# "),
-            'text':v if len(v) > 0 else f"The beginning of {k.lstrip('# ')} section."
-        })
+    results_final_sections = [
+        {
+            'heading': k.lstrip("# "),
+            'text': v
+            if len(v) > 0
+            else f"The beginning of {k.lstrip('# ')} section.",
+        }
+        for k, v in results.items()
+    ]
     results_final['sections'] = results_final_sections
     return results_final
 
@@ -68,16 +71,19 @@ def 批量翻译PDF文档(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
             import nougat
             import tiktoken
         except:
-            report_exception(chatbot, history,
-                             a=f"解析项目: {txt}",
-                             b=f"导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade nougat-ocr tiktoken```。")
+            report_exception(
+                chatbot,
+                history,
+                a=f"解析项目: {txt}",
+                b="导入软件依赖失败。使用该模块需要额外依赖，安装方法```pip install --upgrade nougat-ocr tiktoken```。",
+            )
             yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
             return
     success_mmd, file_manifest_mmd, _ = get_files_from_everything(txt, type='.mmd')
     success = success or success_mmd
     file_manifest += file_manifest_mmd
-    chatbot.append(["文件列表：", ", ".join([e.split('/')[-1] for e in file_manifest])]); 
-    yield from update_ui(      chatbot=chatbot, history=history) 
+    chatbot.append(["文件列表：", ", ".join([e.split('/')[-1] for e in file_manifest])]);
+    yield from update_ui(      chatbot=chatbot, history=history)
     # 检测输入参数，如没有给定输入参数，直接退出
     if not success:
         if txt == "": txt = '空空如也的输入栏'
@@ -107,9 +113,14 @@ def 解析PDF_基于NOUGAT(file_manifest, project_folder, llm_kwargs, plugin_kwa
     nougat_handle = nougat_interface()
     for index, fp in enumerate(file_manifest):
         if fp.endswith('pdf'):
-            chatbot.append(["当前进度：", f"正在解析论文，请稍候。（第一次运行时，需要花费较长时间下载NOUGAT参数）"]); yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
+            chatbot.append(["当前进度：", "正在解析论文，请稍候。（第一次运行时，需要花费较长时间下载NOUGAT参数）"])
+            yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
             fpp = yield from nougat_handle.NOUGAT_parse_pdf(fp, chatbot, history)
-            promote_file_to_downloadzone(fpp, rename_file=os.path.basename(fpp)+'.nougat.mmd', chatbot=chatbot)
+            promote_file_to_downloadzone(
+                fpp,
+                rename_file=f'{os.path.basename(fpp)}.nougat.mmd',
+                chatbot=chatbot,
+            )
         else:
             chatbot.append(["当前论文无需解析：", fp]); yield from update_ui(      chatbot=chatbot, history=history)
             fpp = fp

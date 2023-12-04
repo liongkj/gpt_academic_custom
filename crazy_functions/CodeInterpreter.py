@@ -39,10 +39,10 @@ def get_code_block(reply):
 def gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history):
     # 输入
     prompt_compose = [
-        f'Your job:\n'
-        f'1. write a single Python function, which takes a path of a `{file_type}` file as the only argument and returns a `string` containing the result of analysis or the path of generated files. \n',
-        f"2. You should write this function to perform following task: " + txt + "\n",
-        f"3. Wrap the output python function with markdown codeblock."
+        f'Your job:\n1. write a single Python function, which takes a path of a `{file_type}` file as the only argument and returns a `string` containing the result of analysis or the path of generated files. \n',
+        f"2. You should write this function to perform following task: {txt}"
+        + "\n",
+        "3. Wrap the output python function with markdown codeblock.",
     ]
     i_say = "".join(prompt_compose)
     demo = []
@@ -61,16 +61,17 @@ def gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history):
         "If previous stage is successful, rewrite the function you have just written to satisfy following templete: \n",
         templete
     ]
-    i_say = "".join(prompt_compose); inputs_show_user = "If previous stage is successful, rewrite the function you have just written to satisfy executable templete. "
+    i_say = "".join(prompt_compose)
+    inputs_show_user = "If previous stage is successful, rewrite the function you have just written to satisfy executable templete. "
     gpt_say = yield from request_gpt_model_in_new_thread_with_ui_alive(
         inputs=i_say, inputs_show_user=inputs_show_user, 
         llm_kwargs=llm_kwargs, chatbot=chatbot, history=history, 
         sys_prompt= r"You are a programmer."
     )
     code_to_return = gpt_say
-    history.extend([i_say, gpt_say])
+    history.extend([i_say, code_to_return])
     yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
-    
+
     # # 第三步
     # i_say = "Please list to packages to install to run the code above. Then show me how to use `try_install_deps` function to install them."
     # i_say += 'For instance. `try_install_deps(["opencv-python", "scipy", "numpy"])`'
@@ -88,7 +89,7 @@ def gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history):
     #     sys_prompt= r"You are a programmer."
     # )
     installation_advance = ""
-    
+
     return code_to_return, installation_advance, txt, file_type, llm_kwargs, chatbot, history
 
 def make_module(code):
@@ -124,17 +125,17 @@ def subprocess_worker(instance, file_path, return_dict):
     return_dict['result'] = instance.run(file_path)
 
 def have_any_recent_upload_files(chatbot):
-    _5min = 5 * 60
     if not chatbot: return False    # chatbot is None
-    most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
-    if not most_recent_uploaded: return False   # most_recent_uploaded is None
-    if time.time() - most_recent_uploaded["time"] < _5min: return True # most_recent_uploaded is new
-    else: return False  # most_recent_uploaded is too old
+    if most_recent_uploaded := chatbot._cookies.get(
+        "most_recent_uploaded", None
+    ):
+        return time.time() - most_recent_uploaded["time"] < 5 * 60
+    else:
+        return False   # most_recent_uploaded is None
 
 def get_recent_file_prompt_support(chatbot):
     most_recent_uploaded = chatbot._cookies.get("most_recent_uploaded", None)
-    path = most_recent_uploaded['path']
-    return path
+    return most_recent_uploaded['path']
 
 @CatchException
 def 虚空终端CodeInterpreter(txt, llm_kwargs, plugin_kwargs, chatbot, history, system_prompt, web_port):
@@ -147,81 +148,7 @@ def 虚空终端CodeInterpreter(txt, llm_kwargs, plugin_kwargs, chatbot, history
     system_prompt   给gpt的静默提醒
     web_port        当前软件运行的端口号
     """
-    raise NotImplementedError
-
-    # 清空历史，以免输入溢出
-    history = []; clear_file_downloadzone(chatbot)
-
-    # 基本信息：功能、贡献者
-    chatbot.append([
-        "函数插件功能？",
-        "CodeInterpreter开源版, 此插件处于开发阶段, 建议暂时不要使用, 插件初始化中 ..."
-    ])
-    yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-
-    if have_any_recent_upload_files(chatbot):
-        file_path = get_recent_file_prompt_support(chatbot)
-    else:
-        chatbot.append(["文件检索", "没有发现任何近期上传的文件。"])
-        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-
-    # 读取文件
-    if ("recently_uploaded_files" in plugin_kwargs) and (plugin_kwargs["recently_uploaded_files"] == ""): plugin_kwargs.pop("recently_uploaded_files")
-    recently_uploaded_files = plugin_kwargs.get("recently_uploaded_files", None)
-    file_path = recently_uploaded_files[-1]
-    file_type = file_path.split('.')[-1]
-
-    # 粗心检查
-    if is_the_upload_folder(txt):
-        chatbot.append([
-            "...",
-            f"请在输入框内填写需求，然后再次点击该插件（文件路径 {file_path} 已经被记忆）"
-        ])
-        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-        return
-    
-    # 开始干正事
-    for j in range(5):  # 最多重试5次
-        try:
-            code, installation_advance, txt, file_type, llm_kwargs, chatbot, history = \
-                yield from gpt_interact_multi_step(txt, file_type, llm_kwargs, chatbot, history)
-            code = get_code_block(code)
-            res = make_module(code)
-            instance = init_module_instance(res)
-            break
-        except Exception as e:
-            chatbot.append([f"第{j}次代码生成尝试，失败了", f"错误追踪\n```\n{trimmed_format_exc()}\n```\n"])
-            yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-
-    # 代码生成结束, 开始执行
-    try:
-        import multiprocessing
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict()
-
-        p = multiprocessing.Process(target=subprocess_worker, args=(instance, file_path, return_dict))
-        # only has 10 seconds to run
-        p.start(); p.join(timeout=10)
-        if p.is_alive(): p.terminate(); p.join()
-        p.close()
-        res = return_dict['result']
-        # res = instance.run(file_path)
-    except Exception as e:
-        chatbot.append(["执行失败了", f"错误追踪\n```\n{trimmed_format_exc()}\n```\n"])
-        # chatbot.append(["如果是缺乏依赖，请参考以下建议", installation_advance])
-        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面
-        return
-
-    # 顺利完成，收尾
-    res = str(res)
-    if os.path.exists(res):
-        chatbot.append(["执行成功了，结果是一个有效文件", "结果：" + res])
-        new_file_path = promote_file_to_downloadzone(res, chatbot=chatbot)
-        chatbot = for_immediate_show_off_when_possible(file_type, new_file_path, chatbot)
-        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新
-    else:
-        chatbot.append(["执行成功了，结果是一个字符串", "结果：" + res])
-        yield from update_ui(chatbot=chatbot, history=history) # 刷新界面 # 界面更新   
+    raise NotImplementedError   
 
 """
 测试：
