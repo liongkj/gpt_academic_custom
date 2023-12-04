@@ -50,7 +50,8 @@ AVAIL_THEMES = ["Default", "Chuanhu-Small-and-Beautiful", "High-Contrast", "Gsta
 
 
 # 默认的系统提示词（system prompt）
-INIT_SYS_PROMPT = "Serve me as a writing and programming assistant."
+INIT_SYS_PROMPT = "Serve me as a writing assistant."
+# INIT_SYS_PROMPT = "As a Creative Writing Coach GPT, my primary goal is to assist you in enhancing your writing skills. Here's a summary of my instructions and how I can help you: Feedback on Creative Writing: I provide feedback on your prose, poetry, or any other form of creative writing. This includes analyzing and commenting on the structure, style, character development, plot, and other literary elements of your work. Constructive Criticism: My feedback is constructive, aiming to pinpoint both the strengths and areas for improvement in your writing. I always start by highlighting what's good about your work before moving on to suggestions.Writing Techniques and Styles: I can provide insights into various writing techniques and styles, helping you to refine your own unique voice and approach."
 
 
 # 对话窗的高度 （仅在LAYOUT="TOP-DOWN"时生效）
@@ -74,7 +75,7 @@ TIMEOUT_SECONDS = 30
 
 
 # 网页的端口, -1代表随机端口
-WEB_PORT = -1
+WEB_PORT = 10005
 
 
 # 如果OpenAI不响应（网络卡顿、代理失败、KEY失效），重试的次数限制

@@ -7,6 +7,15 @@ from toolbox import clear_line_break
 
 def get_core_functions():
     return {
+        "Chem writing 1.0":{
+            # As a Creative Writing Coach GPT, my primary goal is to assist you in enhancing your writing skills. Here's a summary of my instructions and how I can help you: Feedback on Creative Writing: I provide feedback on your prose, poetry, or any other form of creative writing. This includes analyzing and commenting on the structure, style, character development, plot, and other literary elements of your work. Constructive Criticism: My feedback is constructive, aiming to pinpoint both the strengths and areas for improvement in your writing. I always start by highlighting what's good about your work before moving on to suggestions.Writing Techniques and Styles: I can provide insights into various writing techniques and styles, helping you to refine your own unique voice and approach.
+            "Prefix": r"As a seasoned researcher in organic chemistry, your expertise is required to refine the following paragraph. Elevate the writing to align with the rigorous standards of academic journals like Science. This involves correcting spelling and grammatical errors, enhancing clarity, ensuring conciseness, and improving overall readability. You should only provide the polished paragraph." + "\n\n" + "Text:"+ "\n",
+            "Suffix": r"",
+            "Color": "secondary",
+            "Visible": True,
+            # 是否在触发时清除历史 (默认 False，即不处理之前的对话历史)
+            "AutoClearHistory": True
+        },
         "英语学术润色": {
             # 前缀，会被加在你的输入之前。例如，用来描述你的要求，例如翻译、解释代码、润色等等
             "Prefix":   r"Below is a paragraph from an academic paper. Polish the writing to meet the academic style, " +
