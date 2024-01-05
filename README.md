@@ -2,7 +2,7 @@
 > 
 > 2023.11.12: 某些依赖包尚不兼容python 3.12，推荐python 3.11。
 > 
-> 2023.11.7: 安装依赖时，请选择`requirements.txt`中**指定的版本**。 安装命令：`pip install -r requirements.txt`。本项目开源免费，近期发现有人蔑视开源协议并利用本项目违规圈钱，请提高警惕，谨防上当受骗。
+> 2023.12.26: 安装依赖时，请选择`requirements.txt`中**指定的版本**。 安装命令：`pip install -r requirements.txt`。本项目完全开源免费，您可通过订阅[在线服务](https://github.com/binary-husky/gpt_academic/wiki/online)的方式鼓励本项目的发展。
 
 <br>
 
@@ -111,7 +111,7 @@ Latex论文一键校对 | [插件] 仿Grammarly对Latex文章进行语法、拼�
 <img src="https://user-images.githubusercontent.com/96192199/226935232-6b6a73ce-8900-4aee-93f9-733c7e6fef53.png" width="700" >
 </div>
 
-- 多种大语言模型混合调用（ChatGLM + OpenAI-GPT3.5 + [API2D](https://api2d.com/)-GPT4）
+- 多种大语言模型混合调用（ChatGLM + OpenAI-GPT3.5 + GPT4）
 <div align="center">
 <img src="https://user-images.githubusercontent.com/96192199/232537274-deca0563-7aa6-4b5d-94a2-b7c453c47794.png" width="700" >
 </div>
@@ -167,6 +167,14 @@ git clone --depth=1 https://github.com/OpenLMLab/MOSS.git request_llms/moss  # �
 
 # 【可选步骤IV】确保config.py配置文件的AVAIL_LLM_MODELS包含了期望的模型，目前支持的全部模型如下(jittorllms系列目前仅支持docker方案)：
 AVAIL_LLM_MODELS = ["gpt-3.5-turbo", "api2d-gpt-3.5-turbo", "gpt-4", "api2d-gpt-4", "chatglm", "moss"] # + ["jittorllms_rwkv", "jittorllms_pangualpha", "jittorllms_llama"]
+
+# 【可选步骤V】支持本地模型INT8,INT4量化（这里所指的模型本身不是量化版本，目前deepseek-coder支持，后面测试后会加入更多模型量化选择）
+pip install bitsandbyte
+# windows用户安装bitsandbytes需要使用下面bitsandbytes-windows-webui
+python -m pip install bitsandbytes --prefer-binary --extra-index-url=https://jllllll.github.io/bitsandbytes-windows-webui
+pip install -U git+https://github.com/huggingface/transformers.git
+pip install -U git+https://github.com/huggingface/accelerate.git
+pip install peft
 ```
 
 </p>
@@ -362,8 +370,8 @@ GPT Academic开发者QQ群：`610599535`
 
 1. `master` 分支: 主分支，稳定版
 2. `frontier` 分支: 开发分支，测试版
-3. 如何接入其他大模型：[接入其他大模型](request_llms/README.md)
-
+3. 如何[接入其他大模型](request_llms/README.md)
+4. 访问GPT-Academic的[在线服务并支持我们](https://github.com/binary-husky/gpt_academic/wiki/online)
 
 ### V：参考与学习
 
