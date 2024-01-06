@@ -94,32 +94,35 @@ def 知识库文件注入(txt, llm_kwargs, plugin_kwargs, chatbot, history, syst
     chatbot.append(
         [
             "<br/>".join(file_manifest),
-            "默认英文向量化模型，如果需要中文模型，请再文件名字前缀加上zh。正在预热文本向量化模组, 如果是第一次运行, 将消耗较长时间下载中文向量化模型...",
+            "默认英文向量化模型，如果需要中文模型，请再文件名字前缀加上zh。正在预热文本向量化模组, 如果是第一次运行, 将消耗较长时间下载向量化模型...",
         ]
     )
     yield from update_ui(chatbot=chatbot, history=history)  # 刷新界面
     print("Checking Text2vec ...")
     from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 
+    huggingface_embed_model = None
     with ProxyNetworkActivate("Download_LLM"):  # 临时地激活代理网络
         # 如果文件名字是en开头的，那么就使用英文模型
         if any([i.startswith("zh") for i in file_manifest]):
             model_name = "GanymedeNil/text2vec-large-chinese"
             chatbot.append(["检测到中文文件", f"正在下载{model_name}向量化模型"])
-            HuggingFaceEmbeddings(model_name="GanymedeNil/text2vec-large-chinese")
+            huggingface_embed_model = HuggingFaceEmbeddings(
+                model_name="GanymedeNil/text2vec-large-chinese"
+            )
         else:
             model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
             chatbot.append(
                 ["Downloading English Text2vec", f"Downloading {model_name} ..."]
             )
-            HuggingFaceEmbeddings(model_name=model_name)
+            huggingface_embed_model = HuggingFaceEmbeddings(model_name=model_name)
 
     # < -------------------构建知识库--------------- >
     chatbot.append(["<br/>".join(file_manifest), "正在构建知识库..."])
     yield from update_ui(chatbot=chatbot, history=history)  # 刷新界面
     print("Establishing knowledge archive ...")
     with ProxyNetworkActivate("Download_LLM"):  # 临时地激活代理网络
-        kai = knowledge_archive_interface()
+        kai = knowledge_archive_interface(huggingface_embed_model)
         vs_path = get_log_folder(user=get_user(chatbot), plugin_name="vec_store")
         kai.feed_archive(file_manifest=file_manifest, vs_path=vs_path, id=kai_id)
     kai_files = kai.get_loaded_file(vs_path=vs_path)
