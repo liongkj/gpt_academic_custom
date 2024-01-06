@@ -8,11 +8,11 @@
 """
 
 # [step 1]>> API_KEY = "sk-123456789xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx123456789"。极少数情况下，还需要填写组织（格式如org-123456789abcdefghijklmno的），请向下翻，找 API_ORG 设置项
-API_KEY = "此处填API密钥"    # 可同时填写多个API-KEY，用英文逗号分割，例如API_KEY = "sk-openaikey1,sk-openaikey2,fkxxxx-api2dkey3,azure-apikey4"
+API_KEY = "此处填API密钥"  # 可同时填写多个API-KEY，用英文逗号分割，例如API_KEY = "sk-openaikey1,sk-openaikey2,fkxxxx-api2dkey3,azure-apikey4"
 
 
 # [step 2]>> 改为True应用代理，如果直接在海外服务器部署，此处不修改；如果使用本地或无地域限制的大模型时，此处也不需要修改
-USE_PROXY = False
+USE_PROXY = True
 if USE_PROXY:
     """
     代理网络的地址，打开你的代理软件查看代理协议(socks5h / http)、地址(localhost)和端口(11284)
@@ -24,16 +24,17 @@ if USE_PROXY:
     """
     proxies = {
         #          [协议]://  [地址]  :[端口]
-        "http":  "socks5h://localhost:11284",  # 再例如  "http":  "http://127.0.0.1:7890",
-        "https": "socks5h://localhost:11284",  # 再例如  "https": "http://127.0.0.1:7890",
+        "http": "host.docker.internal:7890",  # 再例如  "http":  "http://127.0.0.1:7890",
+        "https": "host.docker.internal:7890",  # 再例如  "https": "http://127.0.0.1:7890",
     }
+
 else:
     proxies = None
 
 # ------------------------------------ 以下配置可以优化体验, 但大部分场合下并不需要修改 ------------------------------------
 
 # 重新URL重新定向，实现更换API_URL的作用（高危设置! 常规情况下不要修改! 通过修改此设置，您将把您的API-KEY和对话隐私完全暴露给您设定的中间人！）
-# 格式: API_URL_REDIRECT = {"https://api.openai.com/v1/chat/completions": "在这里填写重定向的api.openai.com的URL"} 
+# 格式: API_URL_REDIRECT = {"https://api.openai.com/v1/chat/completions": "在这里填写重定向的api.openai.com的URL"}
 # 举例: API_URL_REDIRECT = {"https://api.openai.com/v1/chat/completions": "https://reverse-proxy-url/v1/chat/completions"}
 API_URL_REDIRECT = {}
 
@@ -46,7 +47,13 @@ DEFAULT_WORKER_NUM = 3
 # 色彩主题, 可选 ["Default", "Chuanhu-Small-and-Beautiful", "High-Contrast"]
 # 更多主题, 请查阅Gradio主题商店: https://huggingface.co/spaces/gradio/theme-gallery 可选 ["Gstaff/Xkcd", "NoCrypt/Miku", ...]
 THEME = "Default"
-AVAIL_THEMES = ["Default", "Chuanhu-Small-and-Beautiful", "High-Contrast", "Gstaff/Xkcd", "NoCrypt/Miku"]
+AVAIL_THEMES = [
+    "Default",
+    "Chuanhu-Small-and-Beautiful",
+    "High-Contrast",
+    "Gstaff/Xkcd",
+    "NoCrypt/Miku",
+]
 
 
 # 默认的系统提示词（system prompt）
@@ -63,11 +70,11 @@ CODE_HIGHLIGHT = True
 
 
 # 窗口布局
-LAYOUT = "LEFT-RIGHT"   # "LEFT-RIGHT"（左右布局） # "TOP-DOWN"（上下布局）
+LAYOUT = "LEFT-RIGHT"  # "LEFT-RIGHT"（左右布局） # "TOP-DOWN"（上下布局）
 
 
 # 暗色模式 / 亮色模式
-DARK_MODE = True        
+DARK_MODE = True
 
 
 # 发送请求到OpenAI后，等待多久判定为超时
@@ -83,16 +90,28 @@ MAX_RETRY = 2
 
 
 # 插件分类默认选项
-DEFAULT_FN_GROUPS = ['对话', '编程', '学术', '智能体']
+DEFAULT_FN_GROUPS = ["对话", "编程", "学术", "智能体"]
 
 
 # 模型选择是 (注意: LLM_MODEL是默认选中的模型, 它*必须*被包含在AVAIL_LLM_MODELS列表中 )
-LLM_MODEL = "gpt-3.5-turbo" # 可选 ↓↓↓
-AVAIL_LLM_MODELS = ["gpt-3.5-turbo-1106","gpt-4-1106-preview","gpt-4-vision-preview",
-                    "gpt-3.5-turbo-16k", "gpt-3.5-turbo", "azure-gpt-3.5",
-                    "api2d-gpt-3.5-turbo", 'api2d-gpt-3.5-turbo-16k',
-                    "gpt-4", "gpt-4-32k", "azure-gpt-4", "api2d-gpt-4",
-                    "chatglm3", "moss", "claude-2"]
+LLM_MODEL = "gpt-3.5-turbo"  # 可选 ↓↓↓
+AVAIL_LLM_MODELS = [
+    "gpt-3.5-turbo-1106",
+    "gpt-4-1106-preview",
+    "gpt-4-vision-preview",
+    "gpt-3.5-turbo-16k",
+    "gpt-3.5-turbo",
+    "azure-gpt-3.5",
+    "api2d-gpt-3.5-turbo",
+    "api2d-gpt-3.5-turbo-16k",
+    "gpt-4",
+    "gpt-4-32k",
+    "azure-gpt-4",
+    "api2d-gpt-4",
+    "chatglm3",
+    "moss",
+    "claude-2",
+]
 # P.S. 其他可用的模型还包括 ["zhipuai", "qianfan", "deepseekcoder", "llama2", "qwen-local", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k-0613",  "gpt-3.5-random"
 # "spark", "sparkv2", "sparkv3", "chatglm_onnx", "claude-1-100k", "claude-2", "internlm", "jittorllms_pangualpha", "jittorllms_llama"
 # “qwen-turbo", "qwen-plus", "qwen-max"]
@@ -109,22 +128,24 @@ QWEN_LOCAL_MODEL_SELECTION = "Qwen/Qwen-1_8B-Chat-Int8"
 
 
 # 接入通义千问在线大模型 https://dashscope.console.aliyun.com/
-DASHSCOPE_API_KEY = "" # 阿里灵积云API_KEY
+DASHSCOPE_API_KEY = ""  # 阿里灵积云API_KEY
 
 
 # 百度千帆（LLM_MODEL="qianfan"）
-BAIDU_CLOUD_API_KEY = ''
-BAIDU_CLOUD_SECRET_KEY = ''
-BAIDU_CLOUD_QIANFAN_MODEL = 'ERNIE-Bot'    # 可选 "ERNIE-Bot-4"(文心大模型4.0), "ERNIE-Bot"(文心一言), "ERNIE-Bot-turbo", "BLOOMZ-7B", "Llama-2-70B-Chat", "Llama-2-13B-Chat", "Llama-2-7B-Chat"
+BAIDU_CLOUD_API_KEY = ""
+BAIDU_CLOUD_SECRET_KEY = ""
+BAIDU_CLOUD_QIANFAN_MODEL = "ERNIE-Bot"  # 可选 "ERNIE-Bot-4"(文心大模型4.0), "ERNIE-Bot"(文心一言), "ERNIE-Bot-turbo", "BLOOMZ-7B", "Llama-2-70B-Chat", "Llama-2-13B-Chat", "Llama-2-7B-Chat"
 
 
 # 如果使用ChatGLM2微调模型，请把 LLM_MODEL="chatglmft"，并在此处指定模型路径
-CHATGLM_PTUNING_CHECKPOINT = "" # 例如"/home/hmp/ChatGLM2-6B/ptuning/output/6b-pt-128-1e-2/checkpoint-100"
+CHATGLM_PTUNING_CHECKPOINT = (
+    ""  # 例如"/home/hmp/ChatGLM2-6B/ptuning/output/6b-pt-128-1e-2/checkpoint-100"
+)
 
 
 # 本地LLM模型如ChatGLM的执行方式 CPU/GPU
-LOCAL_MODEL_DEVICE = "cpu" # 可选 "cuda"
-LOCAL_MODEL_QUANT = "FP16" # 默认 "FP16" "INT4" 启用量化INT4版本 "INT8" 启用量化INT8版本
+LOCAL_MODEL_DEVICE = "cpu"  # 可选 "cuda"
+LOCAL_MODEL_QUANT = "FP16"  # 默认 "FP16" "INT4" 启用量化INT4版本 "INT8" 启用量化INT8版本
 
 # 设置gradio的并行线程数（不需要修改）
 CONCURRENT_COUNT = 100
@@ -157,14 +178,14 @@ API_ORG = ""
 
 
 # 如果需要使用Slack Claude，使用教程详情见 request_llms/README.md
-SLACK_CLAUDE_BOT_ID = ''   
-SLACK_CLAUDE_USER_TOKEN = ''
+SLACK_CLAUDE_BOT_ID = ""
+SLACK_CLAUDE_USER_TOKEN = ""
 
 
 # 如果需要使用AZURE（方法一：单个azure模型部署）详情请见额外文档 docs\use_azure.md
 AZURE_ENDPOINT = "https://你亲手写的api名称.openai.azure.com/"
-AZURE_API_KEY = "填入azure openai api的密钥"    # 建议直接在API_KEY处填写，该选项即将被弃用
-AZURE_ENGINE = "填入你亲手写的部署名"            # 读 docs\use_azure.md
+AZURE_API_KEY = "填入azure openai api的密钥"  # 建议直接在API_KEY处填写，该选项即将被弃用
+AZURE_ENGINE = "填入你亲手写的部署名"  # 读 docs\use_azure.md
 
 
 # 如果需要使用AZURE（方法二：多个azure模型部署+动态切换）详情请见额外文档 docs\use_azure.md
@@ -180,10 +201,10 @@ put your new bing cookies here
 
 # 阿里云实时语音识别 配置难度较高 仅建议高手用户使用 参考 https://github.com/binary-husky/gpt_academic/blob/master/docs/use_audio.md
 ENABLE_AUDIO = False
-ALIYUN_TOKEN=""     # 例如 f37f30e0f9934c34a992f6f64f7eba4f
-ALIYUN_APPKEY=""    # 例如 RoPlZrM88DnAFkZK
-ALIYUN_ACCESSKEY="" # （无需填写）
-ALIYUN_SECRET=""    # （无需填写）
+ALIYUN_TOKEN = ""  # 例如 f37f30e0f9934c34a992f6f64f7eba4f
+ALIYUN_APPKEY = ""  # 例如 RoPlZrM88DnAFkZK
+ALIYUN_ACCESSKEY = ""  # （无需填写）
+ALIYUN_SECRET = ""  # （无需填写）
 
 
 # 接入讯飞星火大模型 https://console.xfyun.cn/services/iat
@@ -212,9 +233,14 @@ HUGGINGFACE_ACCESS_TOKEN = "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"
 # GROBID服务器地址（填写多个可以均衡负载），用于高质量地读取PDF文档
 # 获取方法：复制以下空间https://huggingface.co/spaces/qingxu98/grobid，设为public，然后GROBID_URL = "https://(你的hf用户名如qingxu98)-(你的填写的空间名如grobid).hf.space"
 GROBID_URLS = [
-    "https://qingxu98-grobid.hf.space","https://qingxu98-grobid2.hf.space","https://qingxu98-grobid3.hf.space",
-    "https://qingxu98-grobid4.hf.space","https://qingxu98-grobid5.hf.space", "https://qingxu98-grobid6.hf.space", 
-    "https://qingxu98-grobid7.hf.space", "https://qingxu98-grobid8.hf.space", 
+    "https://qingxu98-grobid.hf.space",
+    "https://qingxu98-grobid2.hf.space",
+    "https://qingxu98-grobid3.hf.space",
+    "https://qingxu98-grobid4.hf.space",
+    "https://qingxu98-grobid5.hf.space",
+    "https://qingxu98-grobid6.hf.space",
+    "https://qingxu98-grobid7.hf.space",
+    "https://qingxu98-grobid8.hf.space",
 ]
 
 
@@ -235,8 +261,14 @@ PATH_LOGGING = "gpt_log"
 
 
 # 除了连接OpenAI之外，还有哪些场合允许使用代理，请勿修改
-WHEN_TO_USE_PROXY = ["Download_LLM", "Download_Gradio_Theme", "Connect_Grobid", 
-                     "Warmup_Modules", "Nougat_Download", "AutoGen"]
+WHEN_TO_USE_PROXY = [
+    "Download_LLM",
+    "Download_Gradio_Theme",
+    "Connect_Grobid",
+    "Warmup_Modules",
+    "Nougat_Download",
+    "AutoGen",
+]
 
 
 # *实验性功能*: 自动检测并屏蔽失效的KEY，请勿使用

@@ -1,4 +1,5 @@
 ./docs/gradio-3.32.6-py3-none-any.whl
+unstructured[all-docs]
 pypdf2==2.12.1
 tiktoken>=0.3.3
 requests[socks]
@@ -23,3 +24,10 @@ openai
 arxiv
 numpy
 rich
+langchain
+sentence-transformers
+faiss-cpu
+nltk 
+bitsandbytes
+tabulate
+icetk
